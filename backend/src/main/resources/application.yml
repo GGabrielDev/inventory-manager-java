@@ -1,0 +1,31 @@
+server:
+  port: ${PORT:4000}
+
+spring:
+  application:
+    name: inventory-manager-backend
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:inventory_manager_java}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+  jackson:
+    default-property-inclusion: non_null
+
+javers:
+  sqlSchemaManagementEnabled: true
+  sqlGlobalIdCacheDisabled: false
+
+app:
+  cors-origin: ${CORS_ORIGIN:http://localhost:8080}
+  jwt:
+    secret: ${JWT_SECRET:change-me-please-change-me-please-change-me}
+    expire-minutes: ${JWT_EXPIRE_MINUTES:60}

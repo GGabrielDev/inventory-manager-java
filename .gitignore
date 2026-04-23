@@ -1,0 +1,13 @@
+/.idea/
+/.vscode/
+/.DS_Store
+*.iml
+
+/backend/target/
+/frontend/target/
+/target/
+
+/.env
+/.env.*
+
+*.log
