@@ -22,3 +22,6 @@ INVENTORY_API_URL=http://localhost:4000/api
 - Permission-aware module tabs
 - CRUD operations for all backend modules via JSON payload editor
 - Changelog query per entity/id
+- Item request workflow tab for operator-driven inventory operations:
+  - create/edit/submit requests
+  - admin-only review/execute actions

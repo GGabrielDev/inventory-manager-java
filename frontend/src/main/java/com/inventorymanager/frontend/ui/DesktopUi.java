@@ -12,6 +12,8 @@ import javafx.stage.Stage;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class DesktopUi {
     private final Stage stage;
@@ -53,18 +55,28 @@ public class DesktopUi {
     }
 
     private void showDashboard() throws Exception {
+        Map<String, Object> mePayload = apiClient.me();
+        Set<String> roles = ((List<?>) mePayload.getOrDefault("roles", List.of())).stream()
+                .map(Object::toString)
+                .map(String::toLowerCase)
+                .collect(Collectors.toSet());
+        boolean isAdmin = roles.contains("admin");
+
         TabPane tabs = new TabPane();
         tabs.getTabs().add(createResourceTab("Users", "users", "{\n  \"username\": \"new-user\",\n  \"password\": \"password\",\n  \"roleIds\": []\n}"));
         tabs.getTabs().add(createResourceTab("Roles", "roles", "{\n  \"name\": \"operator\",\n  \"description\": \"Operator role\",\n  \"permissionIds\": []\n}"));
         tabs.getTabs().add(createResourceTab("Permissions", "permissions", "{\n  \"name\": \"get_item\",\n  \"description\": \"Allows item reads\"\n}"));
         tabs.getTabs().add(createResourceTab("Departments", "departments", "{\n  \"name\": \"Main Department\"\n}"));
         tabs.getTabs().add(createResourceTab("Categories", "categories", "{\n  \"name\": \"Default Category\"\n}"));
-        tabs.getTabs().add(createResourceTab("Items", "items", "{\n  \"name\": \"Sample Item\",\n  \"quantity\": 1,\n  \"unit\": \"UND\",\n  \"observations\": null,\n  \"characteristicsJson\": \"{}\",\n  \"categoryId\": null,\n  \"departmentId\": 1\n}"));
+        if (isAdmin) {
+            tabs.getTabs().add(createResourceTab("Items", "items", "{\n  \"name\": \"Sample Item\",\n  \"quantity\": 1,\n  \"unit\": \"UND\",\n  \"observations\": null,\n  \"characteristicsJson\": \"{}\",\n  \"categoryId\": null,\n  \"departmentId\": 1\n}"));
+        }
+        tabs.getTabs().add(createItemRequestTab(isAdmin));
         tabs.getTabs().add(createResourceTab("States", "states", "{\n  \"name\": \"Sample State\"\n}"));
         tabs.getTabs().add(createResourceTab("Municipalities", "municipalities", "{\n  \"name\": \"Sample Municipality\",\n  \"stateId\": 1\n}"));
         tabs.getTabs().add(createResourceTab("Parishes", "parishes", "{\n  \"name\": \"Sample Parish\",\n  \"municipalityId\": 1\n}"));
 
-        Label me = new Label(apiClient.me().toString());
+        Label me = new Label(mePayload.toString());
         BorderPane root = new BorderPane();
         root.setTop(new VBox(8, new Label("Authenticated user"), me));
         root.setCenter(tabs);
@@ -114,6 +126,73 @@ public class DesktopUi {
         VBox body = new VBox(8, new Label("Payload JSON"), payloadArea, actions, new Label("Output"), outputArea);
         body.setPadding(new Insets(10));
         Tab tab = new Tab(title, body);
+        tab.setClosable(false);
+        return tab;
+    }
+
+    private Tab createItemRequestTab(boolean isAdmin) {
+        String requestTemplate = """
+                {
+                  "requestType": "INBOUND",
+                  "title": "New incoming stock",
+                  "justification": "Supplier shipment arrived",
+                  "entries": [
+                    {
+                      "itemId": null,
+                      "requestedItemName": "New Item Name",
+                      "requestedQuantity": 10,
+                      "requestedUnit": "UND",
+                      "requestedCategoryId": 1,
+                      "sourceDepartmentId": null,
+                      "targetDepartmentId": 1,
+                      "observations": "Batch 2026-Q2",
+                      "characteristicsJson": "{}"
+                    }
+                  ]
+                }
+                """;
+
+        TextArea payloadArea = new TextArea(requestTemplate);
+        payloadArea.setPrefRowCount(14);
+        TextArea outputArea = new TextArea();
+        outputArea.setPrefRowCount(20);
+        TextField idField = new TextField();
+        idField.setPromptText("request id");
+
+        Button listBtn = new Button("List");
+        Button createBtn = new Button("Create");
+        Button updateBtn = new Button("Update");
+        Button submitBtn = new Button("Submit");
+        Button reviewBtn = new Button("Review");
+        Button executeBtn = new Button("Execute");
+
+        listBtn.setOnAction(e -> execute(outputArea, () -> apiClient.list("item-requests").toString()));
+        createBtn.setOnAction(e -> execute(outputArea, () -> apiClient.create("item-requests", JsonUtil.map(payloadArea.getText())).toString()));
+        updateBtn.setOnAction(e -> execute(outputArea, () -> apiClient.update("item-requests", Long.parseLong(idField.getText()), JsonUtil.map(payloadArea.getText())).toString()));
+        submitBtn.setOnAction(e -> execute(outputArea, () -> apiClient.create("item-requests/" + Long.parseLong(idField.getText()) + "/submit", Map.of()).toString()));
+        reviewBtn.setOnAction(e -> execute(outputArea, () -> apiClient.create(
+                "item-requests/" + Long.parseLong(idField.getText()) + "/review",
+                Map.of("decision", "approve", "comment", "Reviewed from desktop")
+        ).toString()));
+        executeBtn.setOnAction(e -> execute(outputArea, () -> apiClient.create(
+                "item-requests/" + Long.parseLong(idField.getText()) + "/execute",
+                Map.of()
+        ).toString()));
+
+        reviewBtn.setDisable(!isAdmin);
+        executeBtn.setDisable(!isAdmin);
+
+        HBox actions = new HBox(8, idField, listBtn, createBtn, updateBtn, submitBtn, reviewBtn, executeBtn);
+        VBox body = new VBox(
+                8,
+                new Label("Item request payload (operators submit; admins review/execute)"),
+                payloadArea,
+                actions,
+                new Label("Output"),
+                outputArea
+        );
+        body.setPadding(new Insets(10));
+        Tab tab = new Tab("Item Requests", body);
         tab.setClosable(false);
         return tab;
     }

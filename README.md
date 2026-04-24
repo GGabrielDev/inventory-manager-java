@@ -31,6 +31,7 @@ Frontend API base URL default: `http://localhost:4000/api`
 
 - `docs/LOCAL-RUN-AND-PACKAGING.md`
 - `docs/MIGRATION-NOTES.md`
+- `docs/ITEM-REQUEST-WORKFLOW.md`
 
 ## GitHub repository setup
 
