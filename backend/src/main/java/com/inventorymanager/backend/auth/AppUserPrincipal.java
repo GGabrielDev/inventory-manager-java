@@ -23,12 +23,17 @@ public class AppUserPrincipal implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        Set<String> roleNames = user.getRoles().stream()
+                .map(Role::getName)
+                .map(name -> "ROLE_" + name.toUpperCase())
+                .collect(Collectors.toSet());
         Set<String> permissionNames = user.getRoles().stream()
                 .map(Role::getPermissions)
                 .flatMap(Set::stream)
                 .map(Permission::getName)
                 .collect(Collectors.toSet());
-        return permissionNames.stream().map(SimpleGrantedAuthority::new).toList();
+        roleNames.addAll(permissionNames);
+        return roleNames.stream().map(SimpleGrantedAuthority::new).toList();
     }
 
     @Override

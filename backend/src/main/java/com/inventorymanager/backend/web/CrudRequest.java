@@ -1,6 +1,7 @@
 package com.inventorymanager.backend.web;
 
 import com.inventorymanager.backend.domain.Item;
+import com.inventorymanager.backend.domain.ItemRequestType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -34,5 +35,29 @@ public final class CrudRequest {
             String characteristicsJson,
             Long categoryId,
             @NotNull Long departmentId
+    ) {}
+
+    public record ItemRequestEntryUpsert(
+            Long itemId,
+            String requestedItemName,
+            Integer requestedQuantity,
+            Item.UnitType requestedUnit,
+            Long requestedCategoryId,
+            Long sourceDepartmentId,
+            Long targetDepartmentId,
+            String observations,
+            String characteristicsJson
+    ) {}
+
+    public record ItemRequestUpsert(
+            @NotNull ItemRequestType requestType,
+            @NotBlank String title,
+            @NotBlank String justification,
+            @NotNull List<ItemRequestEntryUpsert> entries
+    ) {}
+
+    public record ItemRequestReview(
+            @NotBlank String decision,
+            String comment
     ) {}
 }

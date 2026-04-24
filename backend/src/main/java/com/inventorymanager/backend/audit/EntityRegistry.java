@@ -3,6 +3,7 @@ package com.inventorymanager.backend.audit;
 import com.inventorymanager.backend.domain.Category;
 import com.inventorymanager.backend.domain.Department;
 import com.inventorymanager.backend.domain.Item;
+import com.inventorymanager.backend.domain.ItemRequest;
 import com.inventorymanager.backend.domain.Municipality;
 import com.inventorymanager.backend.domain.Parish;
 import com.inventorymanager.backend.domain.Permission;
@@ -16,16 +17,18 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class EntityRegistry {
-    private final Map<String, Class<?>> entities = Map.of(
-            "user", User.class,
-            "role", Role.class,
-            "permission", Permission.class,
-            "department", Department.class,
-            "category", Category.class,
-            "item", Item.class,
-            "state", State.class,
-            "municipality", Municipality.class,
-            "parish", Parish.class
+    private final Map<String, Class<?>> entities = Map.ofEntries(
+            Map.entry("user", User.class),
+            Map.entry("role", Role.class),
+            Map.entry("permission", Permission.class),
+            Map.entry("department", Department.class),
+            Map.entry("category", Category.class),
+            Map.entry("item", Item.class),
+            Map.entry("itemrequest", ItemRequest.class),
+            Map.entry("item_request", ItemRequest.class),
+            Map.entry("state", State.class),
+            Map.entry("municipality", Municipality.class),
+            Map.entry("parish", Parish.class)
     );
 
     public Class<?> resolve(String entityName) {

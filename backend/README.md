@@ -29,4 +29,10 @@ mvn spring-boot:run
 - `GET /auth/validate`
 - `GET /auth/me`
 - CRUD: `/users`, `/roles`, `/permissions`, `/departments`, `/categories`, `/items`, `/states`, `/municipalities`, `/parishes`
+- Request workflow: `/item-requests`, `/item-requests/{id}/submit`, `/item-requests/{id}/review`, `/item-requests/{id}/execute`
 - Changelogs: `/changelogs/{entity}/{id}`
+
+## Inventory operation policy
+
+- Direct item mutations (`POST/PUT/DELETE /items`) are restricted to **admin role**.
+- Operators should mutate inventory through **item request forms** and lifecycle actions.

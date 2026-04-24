@@ -52,7 +52,7 @@ public class ItemController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('create_item')")
+    @PreAuthorize("hasRole('ADMIN') and hasAuthority('create_item')")
     public Item create(@Valid @RequestBody CrudRequest.ItemUpsert request) {
         Item entity = new Item();
         apply(request, entity);
@@ -62,7 +62,7 @@ public class ItemController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('edit_item')")
+    @PreAuthorize("hasRole('ADMIN') and hasAuthority('edit_item')")
     public Item update(@PathVariable Long id, @Valid @RequestBody CrudRequest.ItemUpsert request) {
         Item entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item not found"));
         apply(request, entity);
@@ -72,7 +72,7 @@ public class ItemController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('delete_item')")
+    @PreAuthorize("hasRole('ADMIN') and hasAuthority('delete_item')")
     public void delete(@PathVariable Long id) {
         Item entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item not found"));
         repository.delete(entity);

@@ -37,7 +37,7 @@ public class AdminSeedRunner implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         List<String> entities = List.of(
-                "user", "role", "permission", "department", "category", "item", "state", "municipality", "parish"
+                "user", "role", "permission", "department", "category", "item", "state", "municipality", "parish", "item_request"
         );
         List<String> actions = List.of("create", "get", "edit", "delete");
 
@@ -53,6 +53,21 @@ public class AdminSeedRunner implements CommandLineRunner {
                 });
                 allPermissions.add(permission);
             }
+        }
+
+        List<String> workflowPermissions = List.of(
+                "submit_item_request",
+                "review_item_request",
+                "execute_item_request"
+        );
+        for (String permissionName : workflowPermissions) {
+            Permission permission = permissionRepository.findByName(permissionName).orElseGet(() -> {
+                Permission created = new Permission();
+                created.setName(permissionName);
+                created.setDescription("Allows a user to " + permissionName.replace('_', ' '));
+                return permissionRepository.save(created);
+            });
+            allPermissions.add(permission);
         }
 
         Role adminRole = roleRepository.findByName("admin").orElseGet(() -> {
@@ -72,5 +87,30 @@ public class AdminSeedRunner implements CommandLineRunner {
             admin.setRoles(Set.of(effectiveAdminRole));
             return userRepository.save(admin);
         });
+
+        Role operatorRole = roleRepository.findByName("operator").orElseGet(() -> {
+            Role created = new Role();
+            created.setName("operator");
+            created.setDescription("Operator role for request-based inventory operations");
+            return roleRepository.save(created);
+        });
+
+        Set<String> operatorPermissionNames = Set.of(
+                "get_item",
+                "get_category",
+                "get_department",
+                "get_state",
+                "get_municipality",
+                "get_parish",
+                "get_item_request",
+                "create_item_request",
+                "edit_item_request",
+                "submit_item_request"
+        );
+        Set<Permission> operatorPermissions = allPermissions.stream()
+                .filter(p -> operatorPermissionNames.contains(p.getName()))
+                .collect(java.util.stream.Collectors.toSet());
+        operatorRole.setPermissions(operatorPermissions);
+        roleRepository.save(operatorRole);
     }
 }
