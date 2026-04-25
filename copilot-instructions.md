@@ -23,3 +23,4 @@
 - Map entities to DTOs explicitly.
 - Use `ApiException` + global handler for uniform error payloads.
 - Use Flyway migrations only (no schema auto-sync in production profile).
+- Always make atomic, focused commits with descriptive Conventional Commits messages for any changes made by the AI.
