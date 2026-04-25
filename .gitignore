@@ -11,3 +11,6 @@
 /.env.*
 
 *.log
+
+.gemini/
+gha-creds-*.json
