@@ -21,6 +21,7 @@ jobs:
         with:
           manifest-file: .release-please-manifest.json
           config-file: release-please-config.json
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           
   build-and-upload:
     needs: release-please
