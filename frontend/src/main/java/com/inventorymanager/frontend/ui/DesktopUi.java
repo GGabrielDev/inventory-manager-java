@@ -17,11 +17,13 @@ import java.util.stream.Collectors;
 
 public class DesktopUi {
     private final Stage stage;
-    private final ApiClient apiClient;
+    private ApiClient apiClient;
+    private final ConfigManager configManager;
 
-    public DesktopUi(Stage stage, ApiClient apiClient) {
+    public DesktopUi(Stage stage, ApiClient apiClient, ConfigManager configManager) {
         this.stage = stage;
         this.apiClient = apiClient;
+        this.configManager = configManager;
     }
 
     public void showLogin() {
@@ -30,28 +32,84 @@ public class DesktopUi {
         password.setText("admin");
         Label status = new Label();
         Button login = new Button("Login");
+        Button settings = new Button("Connection Settings");
 
         login.setOnAction(event -> {
             try {
                 apiClient.login(username.getText(), password.getText());
                 showDashboard();
             } catch (Exception exception) {
-                status.setText(exception.getMessage());
+                showErrorPopup("Login Failed", 
+                    "Could not log in to the server at " + apiClient.getBaseUrl(), 
+                    exception);
             }
         });
 
+        settings.setOnAction(event -> showSettingsPopup());
+
         VBox root = new VBox(12,
                 new Label("Inventory Manager - JavaFX"),
+                new Label("Connected to: " + apiClient.getBaseUrl()),
                 new Label("Username"), username,
                 new Label("Password"), password,
-                login,
+                new HBox(8, login, settings),
                 status
         );
         root.setPadding(new Insets(20));
         root.setAlignment(Pos.CENTER_LEFT);
-        stage.setScene(new Scene(root, 460, 320));
+        stage.setScene(new Scene(root, 460, 360));
         stage.setTitle("Inventory Manager Desktop");
         stage.show();
+    }
+
+    private void showSettingsPopup() {
+        Stage settingsStage = new Stage();
+        settingsStage.initOwner(stage);
+        settingsStage.setTitle("Connection Settings");
+
+        TextField urlField = new TextField(apiClient.getBaseUrl());
+        urlField.setPrefWidth(300);
+        Button save = new Button("Save and Restart");
+
+        save.setOnAction(e -> {
+            String newUrl = urlField.getText();
+            configManager.setApiUrl(newUrl);
+            this.apiClient = new ApiClient(newUrl);
+            settingsStage.close();
+            showLogin(); // Refresh login screen
+        });
+
+        VBox layout = new VBox(10, 
+            new Label("Backend API URL:"), 
+            urlField, 
+            new Label("Note: Changes will apply immediately."),
+            save
+        );
+        layout.setPadding(new Insets(20));
+        settingsStage.setScene(new Scene(layout));
+        settingsStage.show();
+    }
+
+    private void showErrorPopup(String title, String message, Exception ex) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(message);
+        
+        VBox content = new VBox(10);
+        content.getChildren().add(new Label("Error details: " + ex.toString()));
+        content.getChildren().add(new Separator());
+        content.getChildren().add(new Label("Please check your connection or contact the programmer."));
+        
+        Button changeAddress = new Button("Change Connection Address");
+        changeAddress.setOnAction(e -> {
+            alert.close();
+            showSettingsPopup();
+        });
+        
+        content.getChildren().add(changeAddress);
+        
+        alert.getDialogPane().setContent(content);
+        alert.showAndWait();
     }
 
     private void showDashboard() throws Exception {

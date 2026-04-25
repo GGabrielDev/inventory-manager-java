@@ -20,6 +20,10 @@ public class ApiClient {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
     public void login(String username, String password) throws IOException, InterruptedException {
         String body = objectMapper.writeValueAsString(Map.of("username", username, "password", password));
         HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/auth/login"))
