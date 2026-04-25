@@ -19,7 +19,8 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
-          release-type: maven
+          manifest-file: .release-please-manifest.json
+          config-file: release-please-config.json
           
   build-and-upload:
     needs: release-please
@@ -42,4 +43,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload ${{ needs.release-please.outputs.tag_name }} backend/target/*.jar frontend/target/*.jar
+          # Use the tag name from the main package release
+          TAG_NAME="${{ needs.release-please.outputs.tag_name }}"
+          
+          # Find and upload backend jar
+          BACKEND_JAR=$(find backend/target -maxdepth 1 -name "backend-*.jar" | head -n 1)
+          cp $BACKEND_JAR inventory-manager-backend.jar
+          
+          # Find and upload frontend jar (excluding original-*)
+          FRONTEND_JAR=$(find frontend/target -maxdepth 1 -name "frontend-*.jar" ! -name "original-*" | head -n 1)
+          cp $FRONTEND_JAR inventory-manager-frontend.jar
+          
+          gh release upload "$TAG_NAME" inventory-manager-backend.jar inventory-manager-frontend.jar --clobber

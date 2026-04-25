@@ -19,7 +19,7 @@
 ## Default admin seed
 
 - username: `admin`
-- password: `admin`
+- password: `<see_env_example>`
 
 ## Behavioral differences
 

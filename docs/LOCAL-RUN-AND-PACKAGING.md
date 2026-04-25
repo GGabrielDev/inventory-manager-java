@@ -35,6 +35,45 @@ mvn -q -pl backend,frontend -am package
 
 - Backend jar: `backend/target/backend-1.0.0-SNAPSHOT.jar`
 
+## Running the Released JARs
+
+Once the project is built via the CI pipeline (or locally via `mvn clean package`), you can run the resulting executable `.jar` files directly.
+
+### 1. Running the Backend Server
+
+The backend requires Java 21 and a running PostgreSQL instance. You can configure the database connection by passing environment variables or using Spring Boot's command-line arguments.
+
+**Using Command-Line Arguments:**
+```bash
+java -jar inventory-manager-backend.jar \
+  --DB_HOST=localhost \
+  --DB_PORT=5432 \
+  --DB_NAME=${DB_NAME:-inventory_manager_java} \
+  --DB_USER=postgres \
+  --DB_PASSWORD=your_password
+```
+
+**Using Environment Variables (Linux/macOS):**
+```bash
+DB_PASSWORD=your_password DB_NAME=my_custom_db java -jar inventory-manager-backend.jar
+```
+
+If the database is not reachable, the application will print a helpful error message (referring to the `DB_NAME` and connection URL used) and exit cleanly.
+
+### 2. Running the Frontend Desktop App
+
+The frontend is a "fat" JAR containing JavaFX dependencies for Windows, macOS, and Linux. It only requires a standard Java 21 runtime.
+
+**Double-click execution:**
+On most systems with Java 21 installed, you can simply double-click `inventory-manager-frontend.jar` to launch the application.
+
+**Command-line execution:**
+```bash
+java -jar inventory-manager-frontend.jar
+```
+
+*Note: The frontend will remember the last backend URL it connected to. If it fails to connect, a settings popup will appear allowing you to point it to the correct backend IP address.*
+
 ## Frontend native packaging baseline (jpackage)
 
 Use JavaFX jmods from your JDK and package per-OS:
