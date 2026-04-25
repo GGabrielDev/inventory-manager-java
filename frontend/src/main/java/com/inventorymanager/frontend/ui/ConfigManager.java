@@ -48,6 +48,10 @@ public class ConfigManager {
     }
 
     public String getApiUrl() {
+        String envUrl = System.getenv("INVENTORY_API_URL");
+        if (envUrl != null && !envUrl.isBlank()) {
+            return envUrl;
+        }
         return config.getOrDefault("apiUrl", DEFAULT_URL);
     }
 

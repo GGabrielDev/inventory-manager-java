@@ -78,12 +78,25 @@ public class AdminSeedRunner implements CommandLineRunner {
         });
         adminRole.setPermissions(Set.copyOf(allPermissions));
         adminRole = roleRepository.save(adminRole);
-        final Role effectiveAdminRole = adminRole;
+        Role effectiveAdminRole = adminRole;
 
-        userRepository.findByUsername("admin").orElseGet(() -> {
+        String adminUsername = System.getenv("ADMIN_USERNAME");
+        if (adminUsername == null || adminUsername.isBlank()) {
+            adminUsername = "admin";
+        }
+
+        String adminPassword = System.getenv("ADMIN_PASSWORD");
+        if (adminPassword == null || adminPassword.isBlank()) {
+            adminPassword = "password";
+        }
+
+        final String finalAdminUsername = adminUsername;
+        final String finalAdminPassword = adminPassword;
+
+        userRepository.findByUsername(finalAdminUsername).orElseGet(() -> {
             User admin = new User();
-            admin.setUsername("admin");
-            admin.setPasswordHash(passwordEncoder.encode("admin"));
+            admin.setUsername(finalAdminUsername);
+            admin.setPasswordHash(passwordEncoder.encode(finalAdminPassword));
             admin.setRoles(Set.of(effectiveAdminRole));
             return userRepository.save(admin);
         });

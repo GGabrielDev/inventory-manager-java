@@ -10,7 +10,7 @@ class JwtServiceTest {
 
     @Test
     void createAndParseToken() {
-        JwtService jwtService = new JwtService("change-me-please-change-me-please-change-me", 60);
+        JwtService jwtService = new JwtService("a-very-simple-test-secret-value", 60);
 
         String token = jwtService.createToken(42L, "admin");
         Claims claims = jwtService.parse(token);

@@ -16,8 +16,8 @@ mvn spring-boot:run
 
 ## Default seeded admin
 
-- username: `admin`
-- password: `admin`
+- username: `admin` (overridable via `ADMIN_USERNAME`)
+- password: `admin_password` (overridable via `ADMIN_PASSWORD`)
 
 ## API base
 

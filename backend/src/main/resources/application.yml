@@ -7,7 +7,7 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:inventory_manager_java}
     username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:postgres}
+    password: ${DB_PASSWORD:}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -27,5 +27,5 @@ javers:
 app:
   cors-origin: ${CORS_ORIGIN:http://localhost:8080}
   jwt:
-    secret: ${JWT_SECRET:change-me-please-change-me-please-change-me}
+    secret: ${JWT_SECRET:REPLACE_ME}
     expire-minutes: ${JWT_EXPIRE_MINUTES:60}

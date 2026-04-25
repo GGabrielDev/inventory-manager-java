@@ -15,17 +15,24 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 public class InventoryManagerBackendApplication {
     
     public static void main(String[] args) {
-        if (!checkDatabaseConnection()) {
+        String host = getEnv("DB_HOST", "localhost");
+        String port = getEnv("DB_PORT", "5432");
+        String dbName = getEnv("DB_NAME", "inventory_manager_java");
+        String user = getEnv("DB_USER", "postgres");
+        String pass = getEnv("DB_PASSWORD", "");
+        String url = String.format("jdbc:postgresql://%s:%s/%s", host, port, dbName);
+
+        if (!checkDatabaseConnection(url, user, pass)) {
             System.err.println("========================================================================");
             System.err.println("ERROR: DATABASE CONNECTION FAILED");
             System.err.println("========================================================================");
             System.err.println("The application could not connect to the PostgreSQL database.");
             System.err.println("Please ensure that:");
             System.err.println("  1. PostgreSQL is installed and running.");
-            System.err.println("  2. The database 'inventory_manager_java' exists.");
+            System.err.println(String.format("  2. The database '%s' exists.", dbName));
             System.err.println("  3. Credentials in application.yml (or DB_USER/DB_PASSWORD) are correct.");
             System.err.println("");
-            System.err.println("Default expected connection: jdbc:postgresql://localhost:5432/inventory_manager_java");
+            System.err.println(String.format("Attempted connection: %s", url));
             System.err.println("========================================================================");
             System.exit(1);
         }
@@ -37,17 +44,12 @@ public class InventoryManagerBackendApplication {
         }
     }
 
-    private static boolean checkDatabaseConnection() {
-        // We manually check connectivity before Spring starts to provide a better error message.
-        // These values match the defaults in application.yml
-        String host = System.getenv("DB_HOST") != null ? System.getenv("DB_HOST") : "localhost";
-        String port = System.getenv("DB_PORT") != null ? System.getenv("DB_PORT") : "5432";
-        String dbName = System.getenv("DB_NAME") != null ? System.getenv("DB_NAME") : "inventory_manager_java";
-        String user = System.getenv("DB_USER") != null ? System.getenv("DB_USER") : "postgres";
-        String pass = System.getenv("DB_PASSWORD") != null ? System.getenv("DB_PASSWORD") : "postgres";
-        
-        String url = String.format("jdbc:postgresql://%s:%s/%s", host, port, dbName);
+    private static String getEnv(String key, String defaultValue) {
+        String value = System.getenv(key);
+        return value != null ? value : defaultValue;
+    }
 
+    private static boolean checkDatabaseConnection(String url, String user, String pass) {
         try (Connection ignored = DriverManager.getConnection(url, user, pass)) {
             return true;
         } catch (SQLException e) {
