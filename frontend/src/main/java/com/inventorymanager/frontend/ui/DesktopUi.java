@@ -1,13 +1,17 @@
 package com.inventorymanager.frontend.ui;
 
 import com.inventorymanager.frontend.api.ApiClient;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 
 import java.util.List;
@@ -19,6 +23,11 @@ public class DesktopUi {
     private final Stage stage;
     private ApiClient apiClient;
     private final ConfigManager configManager;
+    
+    private BorderPane mainLayout;
+    private StackPane contentArea;
+    private Map<String, Object> currentUser;
+    private boolean isAdmin;
 
     public DesktopUi(Stage stage, ApiClient apiClient, ConfigManager configManager) {
         this.stage = stage;
@@ -27,244 +36,253 @@ public class DesktopUi {
     }
 
     public void showLogin() {
-        TextField username = new TextField("admin");
-        PasswordField password = new PasswordField();
-        password.setText("admin");
-        Label status = new Label();
-        Button login = new Button("Login");
-        Button settings = new Button("Connection Settings");
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(40));
+        root.setAlignment(Pos.CENTER);
+        root.setStyle("-fx-background-color: #f4f7f6;");
 
-        login.setOnAction(event -> {
+        Label title = new Label("INVENTORY MANAGER");
+        title.setFont(Font.font("System", FontWeight.BOLD, 24));
+        title.setTextFill(Color.web("#2c3e50"));
+
+        VBox form = new VBox(10);
+        form.setMaxWidth(300);
+        
+        TextField username = new TextField("admin");
+        username.setPromptText("Username");
+        username.setPrefHeight(40);
+        
+        PasswordField password = new PasswordField();
+        password.setText("password");
+        password.setPromptText("Password");
+        password.setPrefHeight(40);
+
+        Button loginBtn = new Button("Sign In");
+        loginBtn.setMaxWidth(Double.MAX_VALUE);
+        loginBtn.setPrefHeight(40);
+        loginBtn.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold;");
+
+        Button settingsBtn = new Button("Connection Settings");
+        settingsBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #7f8c8d;");
+
+        loginBtn.setOnAction(event -> {
             try {
                 apiClient.login(username.getText(), password.getText());
                 showDashboard();
             } catch (Exception exception) {
-                showErrorPopup("Login Failed", 
-                    "Could not log in to the server at " + apiClient.getBaseUrl(), 
-                    exception);
+                showErrorPopup("Login Failed", "Authentication error", exception);
             }
         });
 
-        settings.setOnAction(event -> showSettingsPopup());
+        settingsBtn.setOnAction(event -> showSettingsPopup());
 
-        VBox root = new VBox(12,
-                new Label("Inventory Manager - JavaFX"),
-                new Label("Connected to: " + apiClient.getBaseUrl()),
-                new Label("Username"), username,
-                new Label("Password"), password,
-                new HBox(8, login, settings),
-                status
-        );
-        root.setPadding(new Insets(20));
-        root.setAlignment(Pos.CENTER_LEFT);
-        stage.setScene(new Scene(root, 460, 360));
-        stage.setTitle("Inventory Manager Desktop");
+        form.getChildren().addAll(new Label("Username"), username, new Label("Password"), password, loginBtn, settingsBtn);
+        root.getChildren().addAll(title, form);
+
+        stage.setScene(new Scene(root, 460, 480));
+        stage.setTitle("Login - Inventory Manager");
         stage.show();
+    }
+
+    private void showDashboard() throws Exception {
+        this.currentUser = apiClient.me();
+        Set<String> roles = ((List<?>) currentUser.getOrDefault("roles", List.of())).stream()
+                .map(Object::toString)
+                .map(String::toLowerCase)
+                .collect(Collectors.toSet());
+        this.isAdmin = roles.contains("admin");
+
+        mainLayout = new BorderPane();
+        contentArea = new StackPane();
+        contentArea.setPadding(new Insets(20));
+        contentArea.setStyle("-fx-background-color: white;");
+
+        VBox sidebar = new VBox(5);
+        sidebar.setPadding(new Insets(10));
+        sidebar.setPrefWidth(220);
+        sidebar.setStyle("-fx-background-color: #2c3e50;");
+
+        Label brand = new Label("INV MANAGER");
+        brand.setTextFill(Color.WHITE);
+        brand.setFont(Font.font("System", FontWeight.BOLD, 18));
+        brand.setPadding(new Insets(10, 10, 20, 10));
+
+        sidebar.getChildren().add(brand);
+        sidebar.getChildren().add(createNavButton("📊 Dashboard", this::showMainDashboardView));
+        sidebar.getChildren().add(new Separator());
+        sidebar.getChildren().add(createNavGroupLabel("INVENTORY"));
+        sidebar.getChildren().add(createNavButton("📦 Assets (Items)", () -> showResourceView("Items", "items")));
+        sidebar.getChildren().add(createNavButton("💼 Bags (Kits)", () -> showResourceView("Bags", "bags")));
+        sidebar.getChildren().add(new Separator());
+        sidebar.getChildren().add(createNavGroupLabel("OPERATIONS"));
+        sidebar.getChildren().add(createNavButton("🔄 Transfers", () -> showResourceView("Transfers", "item-requests")));
+        sidebar.getChildren().add(createNavButton("🔍 Bag Audit", () -> showPlaceholder("Live Audit Scanner")));
+        sidebar.getChildren().add(createNavButton("📉 Displacements", () -> showResourceView("Displacements", "displacements")));
+        sidebar.getChildren().add(new Separator());
+        sidebar.getChildren().add(createNavGroupLabel("SYSTEM"));
+        sidebar.getChildren().add(createNavButton("🏢 Branches", () -> showResourceView("Branches", "branches")));
+        sidebar.getChildren().add(createNavButton("🏢 Departments", () -> showResourceView("Departments", "departments")));
+        sidebar.getChildren().add(createNavButton("👥 Users", () -> showResourceView("Users", "users")));
+        sidebar.getChildren().add(createNavButton("⚙️ Settings", this::showSettingsPopup));
+
+        HBox header = new HBox(15);
+        header.setPadding(new Insets(15, 20, 15, 20));
+        header.setAlignment(Pos.CENTER_RIGHT);
+        header.setStyle("-fx-background-color: white; -fx-border-color: #ecf0f1; -fx-border-width: 0 0 1 0;");
+        
+        Label userLabel = new Label("Logged in as: " + currentUser.get("username"));
+        userLabel.setStyle("-fx-font-weight: bold;");
+        
+        Button logoutBtn = new Button("Logout");
+        logoutBtn.setOnAction(e -> showLogin());
+        
+        header.getChildren().addAll(userLabel, logoutBtn);
+
+        mainLayout.setLeft(sidebar);
+        mainLayout.setTop(header);
+        mainLayout.setCenter(contentArea);
+
+        showMainDashboardView();
+
+        stage.setScene(new Scene(mainLayout, 1280, 850));
+    }
+
+    private Button createNavButton(String text, Runnable action) {
+        Button btn = new Button(text);
+        btn.setMaxWidth(Double.MAX_VALUE);
+        btn.setAlignment(Pos.CENTER_LEFT);
+        btn.setPadding(new Insets(10, 15, 10, 15));
+        btn.setStyle("-fx-background-color: transparent; -fx-text-fill: #bdc3c7; -fx-cursor: hand;");
+        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #34495e; -fx-text-fill: white; -fx-cursor: hand;"));
+        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: transparent; -fx-text-fill: #bdc3c7; -fx-cursor: hand;"));
+        btn.setOnAction(e -> action.run());
+        return btn;
+    }
+
+    private Label createNavGroupLabel(String text) {
+        Label label = new Label(text);
+        label.setTextFill(Color.web("#7f8c8d"));
+        label.setFont(Font.font("System", FontWeight.BOLD, 11));
+        label.setPadding(new Insets(15, 10, 5, 10));
+        return label;
+    }
+
+    private void showMainDashboardView() {
+        VBox root = new VBox(20);
+        Label title = new Label("Overview");
+        title.setFont(Font.font("System", FontWeight.BOLD, 22));
+        
+        HBox cards = new HBox(20);
+        cards.getChildren().addAll(
+            createStatCard("Total Assets", "...", "#3498db"),
+            createStatCard("Pending Requests", "...", "#e67e22"),
+            createStatCard("Active Displacements", "...", "#e74c3c")
+        );
+
+        root.getChildren().addAll(title, cards);
+        setView(root);
+    }
+
+    private VBox createStatCard(String title, String value, String color) {
+        VBox card = new VBox(5);
+        card.setPadding(new Insets(20));
+        card.setPrefWidth(250);
+        card.setStyle("-fx-background-color: white; -fx-border-color: " + color + "; -fx-border-width: 0 0 0 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 0);");
+        Label t = new Label(title);
+        t.setTextFill(Color.GRAY);
+        Label v = new Label(value);
+        v.setFont(Font.font("System", FontWeight.BOLD, 24));
+        card.getChildren().addAll(t, v);
+        return card;
+    }
+
+    private void showResourceView(String title, String resource) {
+        VBox root = new VBox(15);
+        HBox header = new HBox();
+        header.setAlignment(Pos.CENTER_LEFT);
+        Label t = new Label(title);
+        t.setFont(Font.font("System", FontWeight.BOLD, 20));
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        Button refreshBtn = new Button("🔄 Refresh");
+        Button addBtn = new Button("➕ Add New");
+        addBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;");
+        
+        header.getChildren().addAll(t, spacer, refreshBtn, addBtn);
+
+        TableView<Map<String, Object>> table = new TableView<>();
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        
+        refreshBtn.setOnAction(e -> loadTableData(table, resource));
+        addBtn.setOnAction(e -> showPlaceholder("Structured form for " + title));
+
+        root.getChildren().addAll(header, table);
+        setView(root);
+        loadTableData(table, resource);
+    }
+
+    private void loadTableData(TableView<Map<String, Object>> table, String resource) {
+        try {
+            List<Map<String, Object>> data = apiClient.list(resource);
+            table.getColumns().clear();
+            if (!data.isEmpty()) {
+                Map<String, Object> first = data.get(0);
+                for (String key : first.keySet()) {
+                    TableColumn<Map<String, Object>, String> col = new TableColumn<>(key.toUpperCase());
+                    col.setCellValueFactory(cellData -> {
+                        Object val = cellData.getValue().get(key);
+                        if (val instanceof Map) {
+                            val = ((Map<?, ?>) val).get("name");
+                        }
+                        return new javafx.beans.property.SimpleStringProperty(val == null ? "" : val.toString());
+                    });
+                    table.getColumns().add(col);
+                }
+                table.setItems(FXCollections.observableArrayList(data));
+            }
+        } catch (Exception e) {
+            showErrorPopup("Fetch Error", "Could not load " + resource, e);
+        }
+    }
+
+    private void setView(Node node) {
+        contentArea.getChildren().clear();
+        contentArea.getChildren().add(node);
+    }
+
+    private void showPlaceholder(String name) {
+        VBox root = new VBox(10);
+        root.setAlignment(Pos.CENTER);
+        root.getChildren().addAll(new Label("🚧 " + name), new Label("This module is under development."));
+        setView(root);
     }
 
     private void showSettingsPopup() {
         Stage settingsStage = new Stage();
         settingsStage.initOwner(stage);
         settingsStage.setTitle("Connection Settings");
-
         TextField urlField = new TextField(apiClient.getBaseUrl());
         urlField.setPrefWidth(300);
         Button save = new Button("Save and Restart");
-
         save.setOnAction(e -> {
-            String newUrl = urlField.getText();
-            configManager.setApiUrl(newUrl);
-            this.apiClient = new ApiClient(newUrl);
+            configManager.setApiUrl(urlField.getText());
+            this.apiClient = new ApiClient(urlField.getText());
             settingsStage.close();
-            showLogin(); // Refresh login screen
+            showLogin();
         });
-
-        VBox layout = new VBox(10, 
-            new Label("Backend API URL:"), 
-            urlField, 
-            new Label("Note: Changes will apply immediately."),
-            save
-        );
+        VBox layout = new VBox(10, new Label("Backend API URL:"), urlField, save);
         layout.setPadding(new Insets(20));
         settingsStage.setScene(new Scene(layout));
         settingsStage.show();
     }
 
     private void showErrorPopup(String title, String message, Exception ex) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(message);
-        
-        VBox content = new VBox(10);
-        content.getChildren().add(new Label("Error details: " + ex.toString()));
-        content.getChildren().add(new Separator());
-        content.getChildren().add(new Label("Please check your connection or contact the programmer."));
-        
-        Button changeAddress = new Button("Change Connection Address");
-        changeAddress.setOnAction(e -> {
-            alert.close();
-            showSettingsPopup();
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle(title);
+            alert.setHeaderText(message);
+            alert.getDialogPane().setContent(new VBox(10, new Label("Error: " + ex.getMessage()), new Label("Check connection or contact programmer.")));
+            alert.showAndWait();
         });
-        
-        content.getChildren().add(changeAddress);
-        
-        alert.getDialogPane().setContent(content);
-        alert.showAndWait();
-    }
-
-    private void showDashboard() throws Exception {
-        Map<String, Object> mePayload = apiClient.me();
-        Set<String> roles = ((List<?>) mePayload.getOrDefault("roles", List.of())).stream()
-                .map(Object::toString)
-                .map(String::toLowerCase)
-                .collect(Collectors.toSet());
-        boolean isAdmin = roles.contains("admin");
-
-        TabPane tabs = new TabPane();
-        tabs.getTabs().add(createResourceTab("Users", "users", "{\n  \"username\": \"new-user\",\n  \"password\": \"password\",\n  \"roleIds\": []\n}"));
-        tabs.getTabs().add(createResourceTab("Roles", "roles", "{\n  \"name\": \"operator\",\n  \"description\": \"Operator role\",\n  \"permissionIds\": []\n}"));
-        tabs.getTabs().add(createResourceTab("Permissions", "permissions", "{\n  \"name\": \"get_item\",\n  \"description\": \"Allows item reads\"\n}"));
-        tabs.getTabs().add(createResourceTab("Departments", "departments", "{\n  \"name\": \"Main Department\"\n}"));
-        tabs.getTabs().add(createResourceTab("Categories", "categories", "{\n  \"name\": \"Default Category\"\n}"));
-        if (isAdmin) {
-            tabs.getTabs().add(createResourceTab("Items", "items", "{\n  \"name\": \"Sample Item\",\n  \"quantity\": 1,\n  \"unit\": \"UND\",\n  \"observations\": null,\n  \"characteristicsJson\": \"{}\",\n  \"categoryId\": null,\n  \"departmentId\": 1\n}"));
-        }
-        tabs.getTabs().add(createItemRequestTab(isAdmin));
-        tabs.getTabs().add(createResourceTab("States", "states", "{\n  \"name\": \"Sample State\"\n}"));
-        tabs.getTabs().add(createResourceTab("Municipalities", "municipalities", "{\n  \"name\": \"Sample Municipality\",\n  \"stateId\": 1\n}"));
-        tabs.getTabs().add(createResourceTab("Parishes", "parishes", "{\n  \"name\": \"Sample Parish\",\n  \"municipalityId\": 1\n}"));
-
-        Label me = new Label(mePayload.toString());
-        BorderPane root = new BorderPane();
-        root.setTop(new VBox(8, new Label("Authenticated user"), me));
-        root.setCenter(tabs);
-        root.setPadding(new Insets(12));
-        stage.setScene(new Scene(root, 1200, 780));
-    }
-
-    private Tab createResourceTab(String title, String resource, String templateJson) {
-        TextArea payloadArea = new TextArea(templateJson);
-        payloadArea.setPrefRowCount(12);
-        TextArea outputArea = new TextArea();
-        outputArea.setPrefRowCount(20);
-        TextField idField = new TextField();
-        idField.setPromptText("id");
-
-        Button listBtn = new Button("List");
-        Button createBtn = new Button("Create");
-        Button updateBtn = new Button("Update");
-        Button deleteBtn = new Button("Delete");
-        Button changelogBtn = new Button("Changelog");
-
-        listBtn.setOnAction(e -> execute(outputArea, () -> apiClient.list(resource).toString()));
-        createBtn.setOnAction(e -> execute(outputArea, () -> apiClient.create(resource, JsonUtil.map(payloadArea.getText())).toString()));
-        updateBtn.setOnAction(e -> execute(outputArea, () -> apiClient.update(resource, Long.parseLong(idField.getText()), JsonUtil.map(payloadArea.getText())).toString()));
-        deleteBtn.setOnAction(e -> execute(outputArea, () -> {
-            apiClient.delete(resource, Long.parseLong(idField.getText()));
-            return "Deleted " + resource + " #" + idField.getText();
-        }));
-        changelogBtn.setOnAction(e -> execute(outputArea, () -> {
-            String entity = switch (resource) {
-                case "users" -> "user";
-                case "roles" -> "role";
-                case "permissions" -> "permission";
-                case "departments" -> "department";
-                case "categories" -> "category";
-                case "items" -> "item";
-                case "states" -> "state";
-                case "municipalities" -> "municipality";
-                case "parishes" -> "parish";
-                default -> resource;
-            };
-            List<Map<String, Object>> changes = apiClient.list("changelogs/" + entity + "/" + Long.parseLong(idField.getText()));
-            return changes.toString();
-        }));
-
-        HBox actions = new HBox(8, idField, listBtn, createBtn, updateBtn, deleteBtn, changelogBtn);
-        VBox body = new VBox(8, new Label("Payload JSON"), payloadArea, actions, new Label("Output"), outputArea);
-        body.setPadding(new Insets(10));
-        Tab tab = new Tab(title, body);
-        tab.setClosable(false);
-        return tab;
-    }
-
-    private Tab createItemRequestTab(boolean isAdmin) {
-        String requestTemplate = """
-                {
-                  "requestType": "INBOUND",
-                  "title": "New incoming stock",
-                  "justification": "Supplier shipment arrived",
-                  "entries": [
-                    {
-                      "itemId": null,
-                      "requestedItemName": "New Item Name",
-                      "requestedQuantity": 10,
-                      "requestedUnit": "UND",
-                      "requestedCategoryId": 1,
-                      "sourceDepartmentId": null,
-                      "targetDepartmentId": 1,
-                      "observations": "Batch 2026-Q2",
-                      "characteristicsJson": "{}"
-                    }
-                  ]
-                }
-                """;
-
-        TextArea payloadArea = new TextArea(requestTemplate);
-        payloadArea.setPrefRowCount(14);
-        TextArea outputArea = new TextArea();
-        outputArea.setPrefRowCount(20);
-        TextField idField = new TextField();
-        idField.setPromptText("request id");
-
-        Button listBtn = new Button("List");
-        Button createBtn = new Button("Create");
-        Button updateBtn = new Button("Update");
-        Button submitBtn = new Button("Submit");
-        Button reviewBtn = new Button("Review");
-        Button executeBtn = new Button("Execute");
-
-        listBtn.setOnAction(e -> execute(outputArea, () -> apiClient.list("item-requests").toString()));
-        createBtn.setOnAction(e -> execute(outputArea, () -> apiClient.create("item-requests", JsonUtil.map(payloadArea.getText())).toString()));
-        updateBtn.setOnAction(e -> execute(outputArea, () -> apiClient.update("item-requests", Long.parseLong(idField.getText()), JsonUtil.map(payloadArea.getText())).toString()));
-        submitBtn.setOnAction(e -> execute(outputArea, () -> apiClient.create("item-requests/" + Long.parseLong(idField.getText()) + "/submit", Map.of()).toString()));
-        reviewBtn.setOnAction(e -> execute(outputArea, () -> apiClient.create(
-                "item-requests/" + Long.parseLong(idField.getText()) + "/review",
-                Map.of("decision", "approve", "comment", "Reviewed from desktop")
-        ).toString()));
-        executeBtn.setOnAction(e -> execute(outputArea, () -> apiClient.create(
-                "item-requests/" + Long.parseLong(idField.getText()) + "/execute",
-                Map.of()
-        ).toString()));
-
-        reviewBtn.setDisable(!isAdmin);
-        executeBtn.setDisable(!isAdmin);
-
-        HBox actions = new HBox(8, idField, listBtn, createBtn, updateBtn, submitBtn, reviewBtn, executeBtn);
-        VBox body = new VBox(
-                8,
-                new Label("Item request payload (operators submit; admins review/execute)"),
-                payloadArea,
-                actions,
-                new Label("Output"),
-                outputArea
-        );
-        body.setPadding(new Insets(10));
-        Tab tab = new Tab("Item Requests", body);
-        tab.setClosable(false);
-        return tab;
-    }
-
-    private void execute(TextArea output, ThrowingSupplier action) {
-        try {
-            output.setText(action.get());
-        } catch (Exception exception) {
-            output.setText(exception.getMessage());
-        }
-    }
-
-    @FunctionalInterface
-    private interface ThrowingSupplier {
-        String get() throws Exception;
     }
 }

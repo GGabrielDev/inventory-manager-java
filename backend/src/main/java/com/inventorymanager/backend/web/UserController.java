@@ -6,6 +6,7 @@ import com.inventorymanager.backend.common.ApiException;
 import com.inventorymanager.backend.common.PageResponse;
 import com.inventorymanager.backend.domain.Role;
 import com.inventorymanager.backend.domain.User;
+import com.inventorymanager.backend.repository.BranchRepository;
 import com.inventorymanager.backend.repository.RoleRepository;
 import com.inventorymanager.backend.repository.UserRepository;
 import jakarta.validation.Valid;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     private final UserRepository repository;
     private final RoleRepository roleRepository;
+    private final BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;
     private final CurrentUser currentUser;
     private final AuditService auditService;
@@ -30,12 +32,14 @@ public class UserController {
     public UserController(
             UserRepository repository,
             RoleRepository roleRepository,
+            BranchRepository branchRepository,
             PasswordEncoder passwordEncoder,
             CurrentUser currentUser,
             AuditService auditService
     ) {
         this.repository = repository;
         this.roleRepository = roleRepository;
+        this.branchRepository = branchRepository;
         this.passwordEncoder = passwordEncoder;
         this.currentUser = currentUser;
         this.auditService = auditService;
@@ -60,6 +64,12 @@ public class UserController {
         user.setUsername(request.username());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRoles(fetchRoles(request.roleIds()));
+        
+        if (request.branchId() != null) {
+            user.setBranch(branchRepository.findById(request.branchId())
+                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Branch not found")));
+        }
+        
         User saved = repository.save(user);
         auditService.commitCreate(currentUser.id(), saved);
         saved.getRoles().forEach(role ->
@@ -77,6 +87,14 @@ public class UserController {
             user.setPasswordHash(passwordEncoder.encode(request.password()));
         }
         user.setRoles(fetchRoles(request.roleIds()));
+        
+        if (request.branchId() != null) {
+            user.setBranch(branchRepository.findById(request.branchId())
+                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Branch not found")));
+        } else {
+            user.setBranch(null);
+        }
+        
         User saved = repository.save(user);
         auditService.commitUpdate(currentUser.id(), saved);
         Set<Long> current = saved.getRoles().stream().map(Role::getId).collect(Collectors.toSet());

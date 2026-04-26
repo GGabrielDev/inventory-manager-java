@@ -4,9 +4,8 @@ import com.inventorymanager.backend.audit.AuditService;
 import com.inventorymanager.backend.auth.CurrentUser;
 import com.inventorymanager.backend.common.ApiException;
 import com.inventorymanager.backend.common.PageResponse;
-import com.inventorymanager.backend.domain.Category;
-import com.inventorymanager.backend.domain.Department;
 import com.inventorymanager.backend.domain.Item;
+import com.inventorymanager.backend.repository.BranchRepository;
 import com.inventorymanager.backend.repository.CategoryRepository;
 import com.inventorymanager.backend.repository.DepartmentRepository;
 import com.inventorymanager.backend.repository.ItemRepository;
@@ -22,6 +21,7 @@ public class ItemController {
     private final ItemRepository repository;
     private final CategoryRepository categoryRepository;
     private final DepartmentRepository departmentRepository;
+    private final BranchRepository branchRepository;
     private final CurrentUser currentUser;
     private final AuditService auditService;
 
@@ -29,12 +29,14 @@ public class ItemController {
             ItemRepository repository,
             CategoryRepository categoryRepository,
             DepartmentRepository departmentRepository,
+            BranchRepository branchRepository,
             CurrentUser currentUser,
             AuditService auditService
     ) {
         this.repository = repository;
         this.categoryRepository = categoryRepository;
         this.departmentRepository = departmentRepository;
+        this.branchRepository = branchRepository;
         this.currentUser = currentUser;
         this.auditService = auditService;
     }
@@ -52,47 +54,51 @@ public class ItemController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') and hasAuthority('create_item')")
+    @PreAuthorize("hasAuthority('create_item')")
     public Item create(@Valid @RequestBody CrudRequest.ItemUpsert request) {
         Item entity = new Item();
-        apply(request, entity);
+        mapRequestToEntity(request, entity);
         Item saved = repository.save(entity);
         auditService.commitCreate(currentUser.id(), saved);
         return saved;
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') and hasAuthority('edit_item')")
+    @PreAuthorize("hasAuthority('edit_item')")
     public Item update(@PathVariable Long id, @Valid @RequestBody CrudRequest.ItemUpsert request) {
         Item entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item not found"));
-        apply(request, entity);
+        mapRequestToEntity(request, entity);
         Item saved = repository.save(entity);
         auditService.commitUpdate(currentUser.id(), saved);
         return saved;
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') and hasAuthority('delete_item')")
+    @PreAuthorize("hasAuthority('delete_item')")
     public void delete(@PathVariable Long id) {
         Item entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item not found"));
         repository.delete(entity);
         auditService.commitDelete(currentUser.id(), entity);
     }
 
-    private void apply(CrudRequest.ItemUpsert request, Item entity) {
-        Department department = departmentRepository.findById(request.departmentId())
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Department not found"));
-        Category category = null;
-        if (request.categoryId() != null) {
-            category = categoryRepository.findById(request.categoryId())
-                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Category not found"));
-        }
+    private void mapRequestToEntity(CrudRequest.ItemUpsert request, Item entity) {
         entity.setName(request.name());
         entity.setQuantity(request.quantity());
         entity.setUnit(request.unit());
         entity.setObservations(request.observations());
         entity.setCharacteristicsJson(request.characteristicsJson());
-        entity.setCategory(category);
-        entity.setDepartment(department);
+
+        if (request.categoryId() != null) {
+            entity.setCategory(categoryRepository.findById(request.categoryId())
+                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Category not found")));
+        } else {
+            entity.setCategory(null);
+        }
+
+        entity.setBranch(branchRepository.findById(request.branchId())
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Branch not found")));
+
+        entity.setDepartment(departmentRepository.findById(request.departmentId())
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Department not found")));
     }
 }

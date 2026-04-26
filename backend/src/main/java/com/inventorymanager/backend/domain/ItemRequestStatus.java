@@ -2,7 +2,7 @@ package com.inventorymanager.backend.domain;
 
 public enum ItemRequestStatus {
     DRAFT,
-    SUBMITTED,
+    PENDING_REVIEW,
     APPROVED,
     REJECTED,
     EXECUTED,
