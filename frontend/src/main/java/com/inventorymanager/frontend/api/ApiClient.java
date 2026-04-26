@@ -55,6 +55,11 @@ public class ApiClient {
         return objectMapper.readValue(response.body(), new TypeReference<>() {});
     }
 
+    public Map<String, Object> get(String resource) throws IOException, InterruptedException {
+        HttpResponse<String> response = sendAuthorized("/" + resource, "GET", null);
+        return objectMapper.readValue(response.body(), new TypeReference<>() {});
+    }
+
     public Map<String, Object> update(String resource, Number id, Map<String, Object> body) throws IOException, InterruptedException {
         HttpResponse<String> response = sendAuthorized("/" + resource + "/" + id, "PUT", objectMapper.writeValueAsString(body));
         return objectMapper.readValue(response.body(), new TypeReference<>() {});

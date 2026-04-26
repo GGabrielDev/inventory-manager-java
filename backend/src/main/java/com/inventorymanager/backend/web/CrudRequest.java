@@ -39,11 +39,17 @@ public final class CrudRequest {
             @NotNull Long parishId
     ) {}
 
+    public record BagItemUpsert(
+            @NotNull Long itemId,
+            @Min(1) Integer expectedQuantity
+    ) {}
+
     public record BagUpsert(
             @NotBlank String name,
             @NotBlank String barcode,
             @NotNull Long branchId,
-            @NotNull Long assignedDepartmentId
+            @NotNull Long assignedDepartmentId,
+            List<BagItemUpsert> expectedItems
     ) {}
 
     public record DisplacementUpsert(
