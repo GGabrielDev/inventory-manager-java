@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.1.1...v1.1.2) (2026-04-26)
+
+
+### Bug Fixes
+
+* **backend:** Use mutable HashSet in seed runner ([#14](https://github.com/GGabrielDev/inventory-manager-java/issues/14)) ([7e23b96](https://github.com/GGabrielDev/inventory-manager-java/commit/7e23b963146b7fbed25bf6950daa5ebbb2332e9b))
+
 ## [1.1.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.1.0...v1.1.1) (2026-04-26)
 
 
