@@ -1,9 +1,13 @@
 {
   "packages": {
     ".": {
-      "release-type": "maven",
+      "release-type": "node",
       "package-name": "inventory-manager-java",
-      "include-component-in-tag": false
+      "include-component-in-tag": false,
+      "extra-files": [
+        "backend/pom.xml",
+        "frontend/pom.xml"
+      ]
     }
   },
   "plugins": [
