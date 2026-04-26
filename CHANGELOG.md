@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.1.0...v1.1.1) (2026-04-26)
+
+
+### Bug Fixes
+
+* **backend:** Use OffsetDateTime for JPA auditing ([5f358b4](https://github.com/GGabrielDev/inventory-manager-java/commit/5f358b46c6ef97b565dae8d834b589f8f1b293dd))
+* Use OffsetDateTime for JPA auditing ([80dc64e](https://github.com/GGabrielDev/inventory-manager-java/commit/80dc64e1dc6c2908cbbda447e1220760672d603c))
+
+
+### Documentation
+
+* Explain backend JAR configuration methods ([a11b202](https://github.com/GGabrielDev/inventory-manager-java/commit/a11b202c82433c387cb046bf040b1247416c8d5c))
+
 ## [1.1.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.0.0...v1.1.0) (2026-04-25)
 
 
