@@ -12,8 +12,9 @@ permissions:
   contents: read
 
 jobs:
-  # 1. Ensure PR titles follow Conventional Commits so Release Please works
-  lint-pr-title:
+  # renamed to force fresh detection in GitHub UI
+  semantic-linter:
+    name: "Check PR Title"
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -21,8 +22,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # 2. Ensure all modules have the same version
-  version-guard:
+  # combined to prevent stalling and guarantee fresh status reporting
+  verify-and-test:
+    name: "Verify Version and Run Tests"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,19 +49,5 @@ jobs:
             exit 1
           fi
 
-  # 3. Standard build and test
-  build-and-test:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-        cache: maven
-        
-    - name: Build and Verify
-      run: mvn clean verify
+      - name: Build and Verify
+        run: mvn clean verify
