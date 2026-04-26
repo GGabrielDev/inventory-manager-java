@@ -2,17 +2,7 @@ package com.inventorymanager.backend.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.inventorymanager.backend.common.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "items")
@@ -51,8 +41,13 @@ public class Item extends BaseEntity {
     private Category category;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "branch_id", nullable = false)
+    @JsonIgnoreProperties("items")
+    private Branch branch;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "department_id", nullable = false)
-    @JsonIgnoreProperties({"createdAt", "updatedAt"})
+    @JsonIgnoreProperties({"createdAt", "updatedAt", "branch"})
     private Department department;
 
     public Long getId() {
@@ -109,6 +104,14 @@ public class Item extends BaseEntity {
 
     public void setCategory(Category category) {
         this.category = category;
+    }
+
+    public Branch getBranch() {
+        return branch;
+    }
+
+    public void setBranch(Branch branch) {
+        this.branch = branch;
     }
 
     public Department getDepartment() {

@@ -3,16 +3,7 @@ package com.inventorymanager.backend.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.inventorymanager.backend.common.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,6 +21,11 @@ public class User extends BaseEntity {
     @Column(name = "password_hash", nullable = false)
     @JsonIgnore
     private String passwordHash;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id")
+    @JsonIgnoreProperties("users")
+    private Branch branch;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -62,6 +58,14 @@ public class User extends BaseEntity {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public Branch getBranch() {
+        return branch;
+    }
+
+    public void setBranch(Branch branch) {
+        this.branch = branch;
     }
 
     public Set<Role> getRoles() {

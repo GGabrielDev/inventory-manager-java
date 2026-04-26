@@ -31,18 +31,23 @@ public class ItemRequest extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "requested_by_user_id", nullable = false)
-    @JsonIgnoreProperties({"passwordHash", "roles", "createdAt", "updatedAt"})
+    @JsonIgnoreProperties({"passwordHash", "roles", "createdAt", "updatedAt", "branch"})
     private User requestedBy;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "reviewed_by_user_id")
-    @JsonIgnoreProperties({"passwordHash", "roles", "createdAt", "updatedAt"})
+    @JsonIgnoreProperties({"passwordHash", "roles", "createdAt", "updatedAt", "branch"})
     private User reviewedBy;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "executed_by_user_id")
-    @JsonIgnoreProperties({"passwordHash", "roles", "createdAt", "updatedAt"})
+    @JsonIgnoreProperties({"passwordHash", "roles", "createdAt", "updatedAt", "branch"})
     private User executedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "target_branch_id")
+    @JsonIgnoreProperties("departments")
+    private Branch targetBranch;
 
     @Column(name = "requested_at", nullable = false)
     private OffsetDateTime requestedAt = OffsetDateTime.now();
@@ -122,6 +127,14 @@ public class ItemRequest extends BaseEntity {
 
     public void setExecutedBy(User executedBy) {
         this.executedBy = executedBy;
+    }
+
+    public Branch getTargetBranch() {
+        return targetBranch;
+    }
+
+    public void setTargetBranch(Branch targetBranch) {
+        this.targetBranch = targetBranch;
     }
 
     public OffsetDateTime getRequestedAt() {
