@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "master" ]
   pull_request:
-    branches: [ "master", "release-please--*" ]
+    branches: [ "master" ]
     types: [opened, edited, synchronized]
 
 permissions:
@@ -14,20 +14,25 @@ permissions:
 jobs:
   # 1. Ensure PR titles follow Conventional Commits so Release Please works
   lint-pr-title:
-    if: github.event_review == null # Skip on push to master
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: amannn/action-semantic-pull-request@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # 2. Ensure all modules have the same version and are not lower than latest tag
+  # 2. Ensure all modules have the same version
   version-guard:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
         with:
-          fetch-depth: 0 # Needed to see tags
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
 
       - name: Verify Version Sync
         run: |
