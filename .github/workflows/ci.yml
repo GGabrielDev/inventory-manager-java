@@ -12,9 +12,8 @@ permissions:
   contents: read
 
 jobs:
-  # renamed to force fresh detection in GitHub UI
-  semantic-linter:
-    name: "Check PR Title"
+  lint-pr-title:
+    name: "PR Title Linter"
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -22,9 +21,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # combined to prevent stalling and guarantee fresh status reporting
-  verify-and-test:
-    name: "Verify Version and Run Tests"
+  build-and-test:
+    name: "Build and Unit Tests"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,13 +39,11 @@ jobs:
           ROOT_VER=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           BACKEND_VER=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout -pl backend)
           FRONTEND_VER=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout -pl frontend)
-          
           echo "Root: $ROOT_VER, Backend: $BACKEND_VER, Frontend: $FRONTEND_VER"
-          
           if [ "$ROOT_VER" != "$BACKEND_VER" ] || [ "$ROOT_VER" != "$FRONTEND_VER" ]; then
             echo "ERROR: Version mismatch detected between modules!"
             exit 1
           fi
 
-      - name: Build and Verify
+      - name: Run Maven Build and Tests
         run: mvn clean verify
