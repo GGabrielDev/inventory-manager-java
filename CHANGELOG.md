@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.0.0...v1.1.0) (2026-04-25)
+
+
+### Features
+
+* Environment hardening, cross-platform build, and release fixes ([43ef065](https://github.com/GGabrielDev/inventory-manager-java/commit/43ef065c0a5b8b1c8b0651aed6d2a977b53b6e0e))
+* Environment hardening, docs, and release fixes ([334a7f0](https://github.com/GGabrielDev/inventory-manager-java/commit/334a7f083245943cbed8121a685a0c77ca5b0de3))
+
 ## 1.0.0 (2026-04-25)
 
 
