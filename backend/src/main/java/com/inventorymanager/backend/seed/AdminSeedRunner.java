@@ -97,7 +97,7 @@ public class AdminSeedRunner implements CommandLineRunner {
             User admin = new User();
             admin.setUsername(finalAdminUsername);
             admin.setPasswordHash(passwordEncoder.encode(finalAdminPassword));
-            admin.setRoles(Set.of(effectiveAdminRole));
+            admin.setRoles(new java.util.HashSet<>(java.util.Set.of(effectiveAdminRole)));
             return userRepository.save(admin);
         });
 
@@ -122,7 +122,7 @@ public class AdminSeedRunner implements CommandLineRunner {
         );
         Set<Permission> operatorPermissions = allPermissions.stream()
                 .filter(p -> operatorPermissionNames.contains(p.getName()))
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
         operatorRole.setPermissions(operatorPermissions);
         roleRepository.save(operatorRole);
     }
