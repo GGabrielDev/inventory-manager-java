@@ -214,11 +214,138 @@ public class DesktopUi {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         
         refreshBtn.setOnAction(e -> loadTableData(table, resource));
-        addBtn.setOnAction(e -> showPlaceholder("Structured form for " + title));
+        addBtn.setOnAction(e -> showCreateForm(title, resource));
 
         root.getChildren().addAll(header, table);
         setView(root);
         loadTableData(table, resource);
+    }
+
+    private void showCreateForm(String title, String resource) {
+        if (resource.equals("bags")) {
+            showBagCreateForm();
+            return;
+        }
+        if (resource.equals("displacements")) {
+            showDisplacementCreateForm();
+            return;
+        }
+        showPlaceholder("Structured form for " + title);
+    }
+
+    private void showBagCreateForm() {
+        VBox root = new VBox(20);
+        Label t = new Label("Create New Bag");
+        t.setFont(Font.font("System", FontWeight.BOLD, 18));
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+
+        TextField nameField = new TextField();
+        TextField barcodeField = new TextField();
+        ComboBox<IdName> branchCombo = new ComboBox<>();
+        ComboBox<IdName> deptCombo = new ComboBox<>();
+
+        grid.addRow(0, new Label("Bag Name:"), nameField);
+        grid.addRow(1, new Label("Barcode:"), barcodeField);
+        grid.addRow(2, new Label("Branch:"), branchCombo);
+        grid.addRow(3, new Label("Department:"), deptCombo);
+
+        // Load data for combos
+        Platform.runLater(() -> {
+            try {
+                branchCombo.setItems(fetchIdNames("branches"));
+                deptCombo.setItems(fetchIdNames("departments"));
+            } catch (Exception e) {
+                showErrorPopup("Data Error", "Could not load branches/departments", e);
+            }
+        });
+
+        Button saveBtn = new Button("Create Bag");
+        saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
+        saveBtn.setOnAction(e -> {
+            try {
+                Map<String, Object> body = Map.of(
+                    "name", nameField.getText(),
+                    "barcode", barcodeField.getText(),
+                    "branchId", branchCombo.getValue().id,
+                    "assignedDepartmentId", deptCombo.getValue().id,
+                    "expectedItems", List.of() // Simplified for now
+                );
+                apiClient.create("bags", body);
+                showResourceView("Bags", "bags");
+            } catch (Exception ex) {
+                showErrorPopup("Save Error", "Could not create bag", ex);
+            }
+        });
+
+        root.getChildren().addAll(t, grid, saveBtn);
+        setView(root);
+    }
+
+    private void showDisplacementCreateForm() {
+        VBox root = new VBox(20);
+        Label t = new Label("New Temporary Displacement (Borrowing)");
+        t.setFont(Font.font("System", FontWeight.BOLD, 18));
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+
+        ComboBox<IdName> itemCombo = new ComboBox<>();
+        TextField borrowerField = new TextField();
+        TextArea reasonArea = new TextArea();
+        reasonArea.setPrefRowCount(3);
+        DatePicker datePicker = new DatePicker(java.time.LocalDate.now().plusDays(7));
+
+        grid.addRow(0, new Label("Item to Borrow:"), itemCombo);
+        grid.addRow(1, new Label("Borrower Name:"), borrowerField);
+        grid.addRow(2, new Label("Reason:"), reasonArea);
+        grid.addRow(3, new Label("Expected Return:"), datePicker);
+
+        Platform.runLater(() -> {
+            try {
+                itemCombo.setItems(fetchIdNames("items"));
+            } catch (Exception e) {
+                showErrorPopup("Data Error", "Could not load items", e);
+            }
+        });
+
+        Button saveBtn = new Button("Register Displacement");
+        saveBtn.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white;");
+        saveBtn.setOnAction(e -> {
+            try {
+                Map<String, Object> body = Map.of(
+                    "itemId", itemCombo.getValue().id,
+                    "borrowerName", borrowerField.getText(),
+                    "reason", reasonArea.getText(),
+                    "expectedReturnDate", datePicker.getValue().atStartOfDay().atOffset(java.time.ZoneOffset.UTC).toString()
+                );
+                apiClient.create("displacements", body);
+                showResourceView("Displacements", "displacements");
+            } catch (Exception ex) {
+                showErrorPopup("Save Error", "Could not register borrowing", ex);
+            }
+        });
+
+        root.getChildren().addAll(t, grid, saveBtn);
+        setView(root);
+    }
+
+    private ObservableList<IdName> fetchIdNames(String resource) throws Exception {
+        return FXCollections.observableArrayList(
+            apiClient.list(resource).stream()
+                .map(m -> new IdName(((Number) m.get("id")).longValue(), m.get("name").toString()))
+                .collect(Collectors.toList())
+        );
+    }
+
+    private static class IdName {
+        final Long id;
+        final String name;
+        IdName(Long id, String name) { this.id = id; this.name = name; }
+        @Override public String toString() { return name; }
     }
 
     private void loadTableData(TableView<Map<String, Object>> table, String resource) {
