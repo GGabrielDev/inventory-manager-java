@@ -4,21 +4,66 @@ on:
   push:
     branches: [ "master" ]
   pull_request:
-    branches: [ "master", "release-please--*" ]
+    branches: [ "master" ]
+
+permissions:
+  pull-requests: read
+  contents: read
 
 jobs:
-  build-and-test:
+  lint-pr-title:
+    name: "PR Title Linter"
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-        cache: maven
-        
-    - name: Build and Verify
-      run: mvn clean verify
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-test:
+    name: "Build and Unit Tests"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for version comparison
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Verify Version Sync and Latest Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ROOT_VER=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          BACKEND_VER=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout -pl backend)
+          FRONTEND_VER=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout -pl frontend)
+          
+          echo "Current local versions: Root: $ROOT_VER, Backend: $BACKEND_VER, Frontend: $FRONTEND_VER"
+          
+          # 1. Sync Check
+          if [ "$ROOT_VER" != "$BACKEND_VER" ] || [ "$ROOT_VER" != "$FRONTEND_VER" ]; then
+            echo "ERROR: Version mismatch detected between modules!"
+            exit 1
+          fi
+
+          # 2. Release Guard (Only for PRs)
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            LATEST_TAG=$(gh release list -L 1 --json tagName -q '.[0].tagName' | sed 's/^v//')
+            echo "Latest release tag: $LATEST_TAG"
+            
+            if [ ! -z "$LATEST_TAG" ]; then
+              # Simple lexical comparison (standard for semver without complex scripts)
+              if [ "$(printf '%s\n%s' "$LATEST_TAG" "$ROOT_VER" | sort -V | head -n1)" == "$ROOT_VER" ] && [ "$ROOT_VER" != "$LATEST_TAG" ]; then
+                echo "ERROR: Local version ($ROOT_VER) is lower than latest release ($LATEST_TAG)!"
+                exit 1
+              fi
+            fi
+          fi
+
+      - name: Run Maven Build and Tests
+        run: mvn clean verify
