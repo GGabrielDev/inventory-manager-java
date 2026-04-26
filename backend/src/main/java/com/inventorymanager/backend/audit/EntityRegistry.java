@@ -1,15 +1,6 @@
 package com.inventorymanager.backend.audit;
 
-import com.inventorymanager.backend.domain.Category;
-import com.inventorymanager.backend.domain.Department;
-import com.inventorymanager.backend.domain.Item;
-import com.inventorymanager.backend.domain.ItemRequest;
-import com.inventorymanager.backend.domain.Municipality;
-import com.inventorymanager.backend.domain.Parish;
-import com.inventorymanager.backend.domain.Permission;
-import com.inventorymanager.backend.domain.Role;
-import com.inventorymanager.backend.domain.State;
-import com.inventorymanager.backend.domain.User;
+import com.inventorymanager.backend.domain.*;
 import com.inventorymanager.backend.common.ApiException;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -28,7 +19,11 @@ public class EntityRegistry {
             Map.entry("item_request", ItemRequest.class),
             Map.entry("state", State.class),
             Map.entry("municipality", Municipality.class),
-            Map.entry("parish", Parish.class)
+            Map.entry("parish", Parish.class),
+            Map.entry("branch", Branch.class),
+            Map.entry("bag", Bag.class),
+            Map.entry("bag_item", BagItem.class),
+            Map.entry("displacement", Displacement.class)
     );
 
     public Class<?> resolve(String entityName) {

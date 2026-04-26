@@ -1,10 +1,12 @@
 package com.inventorymanager.backend.web;
 
+import com.inventorymanager.backend.domain.DisplacementStatus;
 import com.inventorymanager.backend.domain.Item;
 import com.inventorymanager.backend.domain.ItemRequestType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 public final class CrudRequest {
@@ -13,7 +15,8 @@ public final class CrudRequest {
     public record UserUpsert(
             @NotBlank String username,
             @NotBlank String password,
-            List<Long> roleIds
+            List<Long> roleIds,
+            Long branchId
     ) {}
 
     public record RoleUpsert(
@@ -24,8 +27,32 @@ public final class CrudRequest {
 
     public record PermissionUpsert(@NotBlank String name, @NotBlank String description) {}
     public record NamedUpsert(@NotBlank String name) {}
+    public record DepartmentUpsert(@NotBlank String name, @NotNull Long branchId) {}
     public record MunicipalityUpsert(@NotBlank String name, @NotNull Long stateId) {}
     public record ParishUpsert(@NotBlank String name, @NotNull Long municipalityId) {}
+
+    public record BranchUpsert(
+            @NotBlank String name,
+            @NotBlank String address,
+            @NotNull Long stateId,
+            @NotNull Long municipalityId,
+            @NotNull Long parishId
+    ) {}
+
+    public record BagUpsert(
+            @NotBlank String name,
+            @NotBlank String barcode,
+            @NotNull Long branchId,
+            @NotNull Long assignedDepartmentId
+    ) {}
+
+    public record DisplacementUpsert(
+            Long bagId,
+            @NotNull Long itemId,
+            @NotBlank String reason,
+            @NotBlank String borrowerName,
+            OffsetDateTime expectedReturnDate
+    ) {}
 
     public record ItemUpsert(
             @NotBlank String name,
@@ -34,6 +61,7 @@ public final class CrudRequest {
             String observations,
             String characteristicsJson,
             Long categoryId,
+            @NotNull Long branchId,
             @NotNull Long departmentId
     ) {}
 
@@ -53,7 +81,8 @@ public final class CrudRequest {
             @NotNull ItemRequestType requestType,
             @NotBlank String title,
             @NotBlank String justification,
-            @NotNull List<ItemRequestEntryUpsert> entries
+            @NotNull List<ItemRequestEntryUpsert> entries,
+            Long targetBranchId
     ) {}
 
     public record ItemRequestReview(

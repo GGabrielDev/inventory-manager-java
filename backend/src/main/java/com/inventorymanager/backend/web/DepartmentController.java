@@ -5,6 +5,7 @@ import com.inventorymanager.backend.auth.CurrentUser;
 import com.inventorymanager.backend.common.ApiException;
 import com.inventorymanager.backend.common.PageResponse;
 import com.inventorymanager.backend.domain.Department;
+import com.inventorymanager.backend.repository.BranchRepository;
 import com.inventorymanager.backend.repository.DepartmentRepository;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
@@ -16,11 +17,18 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/departments")
 public class DepartmentController {
     private final DepartmentRepository repository;
+    private final BranchRepository branchRepository;
     private final CurrentUser currentUser;
     private final AuditService auditService;
 
-    public DepartmentController(DepartmentRepository repository, CurrentUser currentUser, AuditService auditService) {
+    public DepartmentController(
+            DepartmentRepository repository,
+            BranchRepository branchRepository,
+            CurrentUser currentUser,
+            AuditService auditService
+    ) {
         this.repository = repository;
+        this.branchRepository = branchRepository;
         this.currentUser = currentUser;
         this.auditService = auditService;
     }
@@ -39,9 +47,11 @@ public class DepartmentController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('create_department')")
-    public Department create(@Valid @RequestBody CrudRequest.NamedUpsert request) {
+    public Department create(@Valid @RequestBody CrudRequest.DepartmentUpsert request) {
         Department entity = new Department();
         entity.setName(request.name());
+        entity.setBranch(branchRepository.findById(request.branchId())
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Branch not found")));
         Department saved = repository.save(entity);
         auditService.commitCreate(currentUser.id(), saved);
         return saved;
@@ -49,9 +59,11 @@ public class DepartmentController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('edit_department')")
-    public Department update(@PathVariable Long id, @Valid @RequestBody CrudRequest.NamedUpsert request) {
+    public Department update(@PathVariable Long id, @Valid @RequestBody CrudRequest.DepartmentUpsert request) {
         Department entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Department not found"));
         entity.setName(request.name());
+        entity.setBranch(branchRepository.findById(request.branchId())
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Branch not found")));
         Department saved = repository.save(entity);
         auditService.commitUpdate(currentUser.id(), saved);
         return saved;
