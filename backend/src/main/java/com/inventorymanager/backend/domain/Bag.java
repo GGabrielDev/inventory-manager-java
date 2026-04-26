@@ -28,7 +28,7 @@ public class Bag extends BaseEntity {
     @JoinColumn(name = "assigned_department_id", nullable = false)
     private Department assignedDepartment;
 
-    @OneToMany(mappedBy = "bag", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "bag", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonIgnoreProperties("bag")
     private Set<BagItem> expectedItems = new HashSet<>();
 

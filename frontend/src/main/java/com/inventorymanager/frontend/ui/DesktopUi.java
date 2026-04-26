@@ -116,7 +116,7 @@ public class DesktopUi {
         sidebar.getChildren().add(new Separator());
         sidebar.getChildren().add(createNavGroupLabel("OPERATIONS"));
         sidebar.getChildren().add(createNavButton("🔄 Transfers", () -> showResourceView("Transfers", "item-requests")));
-        sidebar.getChildren().add(createNavButton("🔍 Bag Audit", () -> showPlaceholder("Live Audit Scanner")));
+        sidebar.getChildren().add(createNavButton("🔍 Bag Audit", this::showBagAuditScanner));
         sidebar.getChildren().add(createNavButton("📉 Displacements", () -> showResourceView("Displacements", "displacements")));
         sidebar.getChildren().add(new Separator());
         sidebar.getChildren().add(createNavGroupLabel("SYSTEM"));
@@ -254,6 +254,62 @@ public class DesktopUi {
         VBox root = new VBox(10);
         root.setAlignment(Pos.CENTER);
         root.getChildren().addAll(new Label("🚧 " + name), new Label("This module is under development."));
+        setView(root);
+    }
+
+    private void showBagAuditScanner() {
+        VBox root = new VBox(15);
+        Label title = new Label("Live Bag Audit Scanner");
+        title.setFont(Font.font("System", FontWeight.BOLD, 20));
+        
+        HBox searchBox = new HBox(10);
+        searchBox.setAlignment(Pos.CENTER_LEFT);
+        TextField barcodeField = new TextField();
+        barcodeField.setPromptText("Scan Bag Barcode...");
+        Button scanBtn = new Button("Scan");
+        searchBox.getChildren().addAll(barcodeField, scanBtn);
+        
+        VBox resultArea = new VBox(10);
+        
+        scanBtn.setOnAction(e -> {
+            try {
+                Map<String, Object> bag = apiClient.get("bags/barcode/" + barcodeField.getText());
+                resultArea.getChildren().clear();
+                resultArea.getChildren().add(new Label("Bag: " + bag.get("name") + " (" + bag.get("barcode") + ")"));
+                
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> items = (List<Map<String, Object>>) bag.get("expectedItems");
+                if (items == null || items.isEmpty()) {
+                    resultArea.getChildren().add(new Label("No expected items configured for this bag."));
+                } else {
+                    TableView<Map<String, Object>> table = new TableView<>();
+                    table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+                    
+                    TableColumn<Map<String, Object>, String> itemCol = new TableColumn<>("EXPECTED ITEM");
+                    itemCol.setCellValueFactory(cellData -> {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> itemData = (Map<String, Object>) cellData.getValue().get("item");
+                        return new javafx.beans.property.SimpleStringProperty(itemData != null ? itemData.get("name").toString() : "");
+                    });
+                    
+                    TableColumn<Map<String, Object>, String> qtyCol = new TableColumn<>("EXPECTED QTY");
+                    qtyCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get("expectedQuantity").toString()));
+                    
+                    table.getColumns().addAll(itemCol, qtyCol);
+                    table.setItems(FXCollections.observableArrayList(items));
+                    resultArea.getChildren().add(table);
+                    
+                    Button displaceBtn = new Button("Report Missing Item (Create Displacement)");
+                    displaceBtn.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
+                    displaceBtn.setOnAction(evt -> showPlaceholder("Create Displacement Form for Bag " + bag.get("id")));
+                    resultArea.getChildren().add(displaceBtn);
+                }
+            } catch (Exception ex) {
+                showErrorPopup("Audit Error", "Failed to fetch bag with barcode: " + barcodeField.getText(), ex);
+            }
+        });
+        
+        root.getChildren().addAll(title, searchBox, resultArea);
         setView(root);
     }
 
