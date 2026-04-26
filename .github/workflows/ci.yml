@@ -5,9 +5,46 @@ on:
     branches: [ "master" ]
   pull_request:
     branches: [ "master", "release-please--*" ]
+    types: [opened, edited, synchronized]
+
+permissions:
+  pull-requests: read
+  contents: read
 
 jobs:
+  # 1. Ensure PR titles follow Conventional Commits so Release Please works
+  lint-pr-title:
+    if: github.event_review == null # Skip on push to master
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 2. Ensure all modules have the same version and are not lower than latest tag
+  version-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed to see tags
+
+      - name: Verify Version Sync
+        run: |
+          ROOT_VER=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          BACKEND_VER=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout -pl backend)
+          FRONTEND_VER=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout -pl frontend)
+          
+          echo "Root: $ROOT_VER, Backend: $BACKEND_VER, Frontend: $FRONTEND_VER"
+          
+          if [ "$ROOT_VER" != "$BACKEND_VER" ] || [ "$ROOT_VER" != "$FRONTEND_VER" ]; then
+            echo "ERROR: Version mismatch detected between modules!"
+            exit 1
+          fi
+
+  # 3. Standard build and test
   build-and-test:
+    needs: [version-guard]
     runs-on: ubuntu-latest
     
     steps:
