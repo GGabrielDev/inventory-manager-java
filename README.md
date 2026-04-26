@@ -17,6 +17,13 @@ Java fullstack rebuild of the existing `inventory-manager` project.
 3. Run backend:
    - `cd backend && mvn spring-boot:run`
    - *Or run the compiled jar: `java -jar inventory-manager-backend.jar --DB_PASSWORD=your_password`*
+
+### Backend Configuration Methods
+When running the `.jar` file, you can provide configuration in three ways:
+- **Command-line flags**: `java -jar backend.jar --DB_PASSWORD=secret --PORT=4001`
+- **Environment variables**: `DB_PASSWORD=secret java -jar backend.jar`
+- **External config file**: Place an `application.yml` file in the same directory as the `.jar`. Spring Boot will automatically detect and use it.
+
 4. Run frontend:
    - `cd frontend && mvn javafx:run`
    - *Or run the compiled jar (double-click or via command line): `java -jar inventory-manager-frontend.jar`*
