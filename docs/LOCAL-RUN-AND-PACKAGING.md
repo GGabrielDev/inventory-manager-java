@@ -41,9 +41,10 @@ Once the project is built via the CI pipeline (or locally via `mvn clean package
 
 ### 1. Running the Backend Server
 
-The backend requires Java 21 and a running PostgreSQL instance. You can configure the database connection by passing environment variables or using Spring Boot's command-line arguments.
+The backend requires Java 21 and a running PostgreSQL instance. You can configure the backend in three ways:
 
-**Using Command-Line Arguments:**
+#### Option A: Command-Line Arguments (Recommended for one-offs)
+Pass any configuration variable using the `--KEY=VALUE` syntax:
 ```bash
 java -jar inventory-manager-backend.jar \
   --DB_HOST=localhost \
@@ -53,10 +54,14 @@ java -jar inventory-manager-backend.jar \
   --DB_PASSWORD=your_password
 ```
 
-**Using Environment Variables (Linux/macOS):**
+#### Option B: Environment Variables
+Standard practice for servers and containers:
 ```bash
 DB_PASSWORD=your_password DB_NAME=my_custom_db java -jar inventory-manager-backend.jar
 ```
+
+#### Option C: External configuration file
+If you place a file named `application.yml` in the **same directory** as the `.jar`, Spring Boot will automatically detect and use it. This is the cleanest way to manage a large number of settings.
 
 If the database is not reachable, the application will print a helpful error message (referring to the `DB_NAME` and connection URL used) and exit cleanly.
 
