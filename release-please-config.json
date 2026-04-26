@@ -4,16 +4,6 @@
       "release-type": "maven",
       "package-name": "inventory-manager-java",
       "include-component-in-tag": false
-    },
-    "backend": {
-      "release-type": "maven",
-      "package-name": "backend",
-      "include-component-in-tag": true
-    },
-    "frontend": {
-      "release-type": "maven",
-      "package-name": "frontend",
-      "include-component-in-tag": true
     }
   },
   "plugins": [
