@@ -76,7 +76,7 @@ public class AdminSeedRunner implements CommandLineRunner {
             created.setDescription("Administrator role with full permissions");
             return roleRepository.save(created);
         });
-        adminRole.setPermissions(Set.copyOf(allPermissions));
+        adminRole.setPermissions(new java.util.HashSet<>(allPermissions));
         adminRole = roleRepository.save(adminRole);
         Role effectiveAdminRole = adminRole;
 
