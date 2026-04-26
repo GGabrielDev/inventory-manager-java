@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.2.0...v1.3.0) (2026-04-26)
+
+
+### Features
+
+* Ui redesign phase 2 - ui foundation and core screens ([#21](https://github.com/GGabrielDev/inventory-manager-java/issues/21)) ([0f15b90](https://github.com/GGabrielDev/inventory-manager-java/commit/0f15b90eb34aff1512d4824c09e7cd77d81487d5))
+
 ## [1.2.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.1.2...v1.2.0) (2026-04-26)
 
 
