@@ -223,15 +223,174 @@ public class DesktopUi {
     }
 
     private void showCreateForm(String title, String resource) {
-        if (resource.equals("bags")) {
-            showBagCreateForm();
-            return;
+        switch (resource) {
+            case "items" -> showItemCreateForm();
+            case "bags" -> showBagCreateForm();
+            case "displacements" -> showDisplacementCreateForm();
+            case "branches" -> showBranchCreateForm();
+            case "departments" -> showDepartmentCreateForm();
+            case "users" -> showUserCreateForm();
+            default -> showPlaceholder("Structured form for " + title);
         }
-        if (resource.equals("displacements")) {
-            showDisplacementCreateForm();
-            return;
-        }
-        showPlaceholder("Structured form for " + title);
+    }
+
+    private void showItemCreateForm() {
+        VBox root = new VBox(20);
+        Label t = new Label("Add New Asset (Item)");
+        t.setFont(Font.font("System", FontWeight.BOLD, 18));
+        GridPane grid = new GridPane();
+        grid.setHgap(10); grid.setVgap(10);
+
+        TextField nameField = new TextField();
+        TextField qtyField = new TextField("1");
+        ComboBox<String> unitCombo = new ComboBox<>(FXCollections.observableArrayList("UND", "KG", "L", "M"));
+        unitCombo.setValue("UND");
+        ComboBox<IdName> branchCombo = new ComboBox<>();
+        ComboBox<IdName> deptCombo = new ComboBox<>();
+
+        grid.addRow(0, new Label("Item Name:"), nameField);
+        grid.addRow(1, new Label("Initial Quantity:"), qtyField);
+        grid.addRow(2, new Label("Unit:"), unitCombo);
+        grid.addRow(3, new Label("Target Branch:"), branchCombo);
+        grid.addRow(4, new Label("Target Department:"), deptCombo);
+
+        Platform.runLater(() -> {
+            try {
+                branchCombo.setItems(fetchIdNames("branches"));
+                deptCombo.setItems(fetchIdNames("departments"));
+            } catch (Exception e) {}
+        });
+
+        Button saveBtn = new Button("Create Item");
+        saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
+        saveBtn.setOnAction(e -> {
+            try {
+                apiClient.create("items", Map.of(
+                    "name", nameField.getText(),
+                    "quantity", Integer.parseInt(qtyField.getText()),
+                    "unit", unitCombo.getValue(),
+                    "branchId", branchCombo.getValue().id,
+                    "departmentId", deptCombo.getValue().id
+                ));
+                showResourceView("Items", "items");
+            } catch (Exception ex) { showErrorPopup("Save Error", "Item creation failed", ex); }
+        });
+        root.getChildren().addAll(t, grid, saveBtn);
+        setView(root);
+    }
+
+    private void showBranchCreateForm() {
+        VBox root = new VBox(20);
+        Label t = new Label("Register New Branch Office");
+        t.setFont(Font.font("System", FontWeight.BOLD, 18));
+        GridPane grid = new GridPane();
+        grid.setHgap(10); grid.setVgap(10);
+
+        TextField nameField = new TextField();
+        TextArea addrArea = new TextArea(); addrArea.setPrefRowCount(2);
+        ComboBox<IdName> stateCombo = new ComboBox<>();
+        ComboBox<IdName> muniCombo = new ComboBox<>();
+        ComboBox<IdName> parishCombo = new ComboBox<>();
+
+        grid.addRow(0, new Label("Branch Name:"), nameField);
+        grid.addRow(1, new Label("Full Address:"), addrArea);
+        grid.addRow(2, new Label("State:"), stateCombo);
+        grid.addRow(3, new Label("Municipality:"), muniCombo);
+        grid.addRow(4, new Label("Parish:"), parishCombo);
+
+        Platform.runLater(() -> {
+            try {
+                stateCombo.setItems(fetchIdNames("states"));
+                stateCombo.setOnAction(e -> {
+                   try { muniCombo.setItems(fetchIdNames("municipalities")); } catch (Exception ex) {}
+                });
+                muniCombo.setOnAction(e -> {
+                   try { parishCombo.setItems(fetchIdNames("parishes")); } catch (Exception ex) {}
+                });
+            } catch (Exception e) {}
+        });
+
+        Button saveBtn = new Button("Register Branch");
+        saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
+        saveBtn.setOnAction(e -> {
+            try {
+                apiClient.create("branches", Map.of(
+                    "name", nameField.getText(),
+                    "address", addrArea.getText(),
+                    "stateId", stateCombo.getValue().id,
+                    "municipalityId", muniCombo.getValue().id,
+                    "parishId", parishCombo.getValue().id
+                ));
+                showResourceView("Branches", "branches");
+            } catch (Exception ex) { showErrorPopup("Save Error", "Branch registration failed", ex); }
+        });
+        root.getChildren().addAll(t, grid, saveBtn);
+        setView(root);
+    }
+
+    private void showDepartmentCreateForm() {
+        VBox root = new VBox(20);
+        Label t = new Label("Create New Department");
+        t.setFont(Font.font("System", FontWeight.BOLD, 18));
+        GridPane grid = new GridPane();
+        grid.setHgap(10); grid.setVgap(10);
+
+        TextField nameField = new TextField();
+        ComboBox<IdName> branchCombo = new ComboBox<>();
+
+        grid.addRow(0, new Label("Dept Name:"), nameField);
+        grid.addRow(1, new Label("Branch:"), branchCombo);
+
+        Platform.runLater(() -> {
+            try { branchCombo.setItems(fetchIdNames("branches")); } catch (Exception e) {}
+        });
+
+        Button saveBtn = new Button("Create Department");
+        saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
+        saveBtn.setOnAction(e -> {
+            try {
+                apiClient.create("departments", Map.of("name", nameField.getText(), "branchId", branchCombo.getValue().id));
+                showResourceView("Departments", "departments");
+            } catch (Exception ex) { showErrorPopup("Save Error", "Dept creation failed", ex); }
+        });
+        root.getChildren().addAll(t, grid, saveBtn);
+        setView(root);
+    }
+
+    private void showUserCreateForm() {
+        VBox root = new VBox(20);
+        Label t = new Label("Register System User");
+        t.setFont(Font.font("System", FontWeight.BOLD, 18));
+        GridPane grid = new GridPane();
+        grid.setHgap(10); grid.setVgap(10);
+
+        TextField userField = new TextField();
+        PasswordField passField = new PasswordField();
+        ComboBox<IdName> branchCombo = new ComboBox<>();
+
+        grid.addRow(0, new Label("Username:"), userField);
+        grid.addRow(1, new Label("Password:"), passField);
+        grid.addRow(2, new Label("Primary Branch:"), branchCombo);
+
+        Platform.runLater(() -> {
+            try { branchCombo.setItems(fetchIdNames("branches")); } catch (Exception e) {}
+        });
+
+        Button saveBtn = new Button("Register User");
+        saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
+        saveBtn.setOnAction(e -> {
+            try {
+                apiClient.create("users", Map.of(
+                    "username", userField.getText(),
+                    "password", passField.getText(),
+                    "branchId", branchCombo.getValue().id,
+                    "roleIds", List.of()
+                ));
+                showResourceView("Users", "users");
+            } catch (Exception ex) { showErrorPopup("Save Error", "User registration failed", ex); }
+        });
+        root.getChildren().addAll(t, grid, saveBtn);
+        setView(root);
     }
 
     private void showBagCreateForm() {
@@ -429,7 +588,7 @@ public class DesktopUi {
                     
                     Button displaceBtn = new Button("Report Missing Item (Create Displacement)");
                     displaceBtn.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
-                    displaceBtn.setOnAction(evt -> showPlaceholder("Create Displacement Form for Bag " + bag.get("id")));
+                    displaceBtn.setOnAction(evt -> showDisplacementCreateForm());
                     resultArea.getChildren().add(displaceBtn);
                 }
             } catch (Exception ex) {
