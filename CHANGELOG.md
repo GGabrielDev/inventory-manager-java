@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.3.0...v1.4.0) (2026-04-26)
+
+
+### Features
+
+* Ui redesign phase 3 - bag and displacement workflows ([#23](https://github.com/GGabrielDev/inventory-manager-java/issues/23)) ([cb93bb6](https://github.com/GGabrielDev/inventory-manager-java/commit/cb93bb6b9e92a8edf49515d0b300f9097bc5f465))
+* **ui:** Complete all creation forms and finalize redesign ([#25](https://github.com/GGabrielDev/inventory-manager-java/issues/25)) ([0702378](https://github.com/GGabrielDev/inventory-manager-java/commit/0702378255d1ca644cd90b8ca88fed2872917b38))
+
 ## [1.3.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.2.0...v1.3.0) (2026-04-26)
 
 
