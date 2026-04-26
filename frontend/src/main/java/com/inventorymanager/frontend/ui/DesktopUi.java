@@ -3,6 +3,7 @@ package com.inventorymanager.frontend.ui;
 import com.inventorymanager.frontend.api.ApiClient;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
