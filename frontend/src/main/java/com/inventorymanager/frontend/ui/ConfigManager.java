@@ -18,6 +18,7 @@ public class ConfigManager {
     private static final String CONFIG_DIR = ".inventory-manager";
     private static final String CONFIG_FILE = "config.json";
     private static final String DEFAULT_URL = "http://localhost:4000/api";
+    private static final String DEFAULT_LANG = java.util.Locale.getDefault().getLanguage();
     
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Path configPath;
@@ -26,6 +27,15 @@ public class ConfigManager {
     public ConfigManager() {
         this.configPath = Paths.get(getConfigDirectory(), CONFIG_DIR, CONFIG_FILE);
         load();
+    }
+
+    public String getLanguage() {
+        return config.getOrDefault("language", DEFAULT_LANG);
+    }
+
+    public void setLanguage(String lang) {
+        config.put("language", lang);
+        save();
     }
 
     private String getConfigDirectory() {
