@@ -44,7 +44,8 @@ public class ApiClient {
     }
 
     public List<Map<String, Object>> list(String resource) throws IOException, InterruptedException {
-        HttpResponse<String> response = sendAuthorized("/" + resource + "?page=1&pageSize=100", "GET", null);
+        String path = resource.contains("?") ? resource : resource + "?page=1&pageSize=100";
+        HttpResponse<String> response = sendAuthorized("/" + path, "GET", null);
         Map<String, Object> payload = objectMapper.readValue(response.body(), new TypeReference<>() {});
         Object data = payload.get("data");
         return objectMapper.convertValue(data, new TypeReference<>() {});
