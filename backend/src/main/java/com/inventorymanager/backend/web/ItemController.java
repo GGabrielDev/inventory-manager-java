@@ -43,8 +43,21 @@ public class ItemController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('get_item')")
-    public PageResponse<Item> list(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize) {
-        return PageUtil.from(repository.findAll(PageRequest.of(Math.max(0, page - 1), pageSize)));
+    public PageResponse<Item> list(
+            @RequestParam(required = false) Long stateId,
+            @RequestParam(required = false) Long municipalityId,
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        org.springframework.data.jpa.domain.Specification<Item> spec = org.springframework.data.jpa.domain.Specification
+                .where(com.inventorymanager.backend.repository.specification.ItemSpecification.hasState(stateId))
+                .and(com.inventorymanager.backend.repository.specification.ItemSpecification.hasMunicipality(municipalityId))
+                .and(com.inventorymanager.backend.repository.specification.ItemSpecification.hasBranch(branchId))
+                .and(com.inventorymanager.backend.repository.specification.ItemSpecification.hasCategory(categoryId));
+
+        return PageUtil.from(repository.findAll(spec, PageRequest.of(Math.max(0, page - 1), pageSize)));
     }
 
     @GetMapping("/{id}")

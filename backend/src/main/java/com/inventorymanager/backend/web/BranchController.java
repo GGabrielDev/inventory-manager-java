@@ -43,8 +43,17 @@ public class BranchController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('get_branch')")
-    public PageResponse<Branch> list(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize) {
-        return PageUtil.from(repository.findAll(PageRequest.of(Math.max(0, page - 1), pageSize)));
+    public PageResponse<Branch> list(
+            @RequestParam(required = false) Long stateId,
+            @RequestParam(required = false) Long municipalityId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        org.springframework.data.jpa.domain.Specification<Branch> spec = org.springframework.data.jpa.domain.Specification
+                .where(com.inventorymanager.backend.repository.specification.BranchSpecification.hasState(stateId))
+                .and(com.inventorymanager.backend.repository.specification.BranchSpecification.hasMunicipality(municipalityId));
+
+        return PageUtil.from(repository.findAll(spec, PageRequest.of(Math.max(0, page - 1), pageSize)));
     }
 
     @GetMapping("/{id}")

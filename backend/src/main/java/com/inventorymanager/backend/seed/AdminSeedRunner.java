@@ -49,7 +49,7 @@ public class AdminSeedRunner implements CommandLineRunner {
     public void run(String... args) {
         // 1. Seed Permissions
         List<String> entities = List.of(
-                "user", "role", "permission", "department", "category", "item", "state", "municipality", "parish", "item_request", "branch", "bag", "displacement"
+                "user", "role", "permission", "department", "category", "item", "state", "municipality", "parish", "item_request", "branch", "bag", "displacement", "audit_logs"
         );
         List<String> actions = List.of("create", "get", "edit", "delete");
 

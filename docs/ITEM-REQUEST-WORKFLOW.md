@@ -9,11 +9,13 @@ Only **admins** can directly mutate `/api/items` (create/edit/delete).
 
 Supported request types:
 
-- `INBOUND` (new incoming stock)
-- `MODIFICATION` (item metadata/quantity changes)
-- `TRANSFER` (inter-department movement)
-- `DISINCORPORATION` (decommission/removal)
-- `ADJUSTMENT` (signed quantity correction)
+- `INBOUND`: New incoming stock. Must target a `Branch`. Resulting items are assigned to the "Inbound" department of that branch.
+- `MODIFICATION`: Updates metadata or quantity of existing items.
+- `TRANSFER`: Movement of items.
+    - **Inter-Branch**: Moving items to a different branch. Targets a `Branch`. Items land in the "Inbound" department of the destination.
+    - **Intra-Branch**: Moving items between departments in the *same* branch. Targets a `Department` (e.g., Storage -> IT).
+- `DISINCORPORATION`: Decommission/removal of items from inventory.
+- `ADJUSTMENT`: Signed quantity correction for auditing.
 
 Each request can include **multiple entries**, allowing bulk operations in one workflow.
 
