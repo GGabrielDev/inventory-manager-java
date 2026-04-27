@@ -96,9 +96,9 @@ public class DesktopUi {
     private void showDashboard() throws Exception {
         this.currentUser = apiClient.me();
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> rolesPayload = (List<Map<String, Object>>) currentUser.getOrDefault("roles", List.of());
+        List<String> rolesPayload = (List<String>) currentUser.getOrDefault("roles", List.of());
         Set<String> roles = rolesPayload.stream()
-                .map(r -> r.get("name").toString().toLowerCase())
+                .map(String::toLowerCase)
                 .collect(Collectors.toSet());
         this.isAdmin = roles.contains("admin");
 
