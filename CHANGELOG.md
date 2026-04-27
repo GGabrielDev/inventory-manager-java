@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.4.0...v1.5.0) (2026-04-27)
+
+
+### Features
+
+* Inventory Manager 2.0 - Admin Panel and Reinforced Docs ([#26](https://github.com/GGabrielDev/inventory-manager-java/issues/26)) ([6430066](https://github.com/GGabrielDev/inventory-manager-java/commit/6430066c88bd0b8b6c416a3c52a4158f594fab24))
+
 ## [1.4.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.3.0...v1.4.0) (2026-04-26)
 
 
