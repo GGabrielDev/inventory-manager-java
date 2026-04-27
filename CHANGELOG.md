@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.5.1...v1.6.0) (2026-04-27)
+
+
+### Features
+
+* **ui:** Implement i18n support for english and spanish ([#30](https://github.com/GGabrielDev/inventory-manager-java/issues/30)) ([343afdc](https://github.com/GGabrielDev/inventory-manager-java/commit/343afdcf9a75d34c57df03200b6e7a034f9e435f))
+
 ## [1.5.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.5.0...v1.5.1) (2026-04-27)
 
 
