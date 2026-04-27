@@ -85,12 +85,6 @@
             <version>4.0.18</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.testfx</groupId>
-            <artifactId>testfx-monocle</artifactId>
-            <version>8u76-b04</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
