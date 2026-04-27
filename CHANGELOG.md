@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.5.0...v1.5.1) (2026-04-27)
+
+
+### Bug Fixes
+
+* Resolve login crash and reinforce testing suite ([#28](https://github.com/GGabrielDev/inventory-manager-java/issues/28)) ([09643f7](https://github.com/GGabrielDev/inventory-manager-java/commit/09643f70bfe3ccd516cdf9a5ff39605483cb9285))
+
 ## [1.5.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.4.0...v1.5.0) (2026-04-27)
 
 
