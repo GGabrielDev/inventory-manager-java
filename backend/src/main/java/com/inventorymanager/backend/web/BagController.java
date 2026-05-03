@@ -10,6 +10,9 @@ import com.inventorymanager.backend.repository.BagRepository;
 import com.inventorymanager.backend.repository.BranchRepository;
 import com.inventorymanager.backend.repository.DepartmentRepository;
 import com.inventorymanager.backend.repository.ItemRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -21,6 +24,7 @@ import java.util.Set;
 
 @RestController
 @RequestMapping("/api/bags")
+@Tag(name = "Bags", description = "Management of physical containers and kits")
 public class BagController {
     private final BagRepository repository;
     private final BranchRepository branchRepository;
@@ -47,19 +51,22 @@ public class BagController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('get_bag')")
+    @Operation(summary = "List all bags", description = "Retrieves a paginated list of all kits/bags in the system.")
     public PageResponse<Bag> list(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize) {
         return PageUtil.from(repository.findAll(PageRequest.of(Math.max(0, page - 1), pageSize)));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('get_bag')")
+    @Operation(summary = "Get bag by ID")
     public Bag get(@PathVariable Long id) {
         return repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bag not found"));
     }
 
     @GetMapping("/barcode/{barcode}")
     @PreAuthorize("hasAuthority('get_bag')")
-    public Bag getByBarcode(@PathVariable String barcode) {
+    @Operation(summary = "Find bag by barcode", description = "Used by the Live Audit scanner to quickly identify a kit.")
+    public Bag getByBarcode(@Parameter(description = "Unique barcode of the bag") @PathVariable String barcode) {
         return repository.findByBarcode(barcode).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bag not found"));
     }
 

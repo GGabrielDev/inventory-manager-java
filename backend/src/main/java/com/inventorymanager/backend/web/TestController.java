@@ -114,7 +114,7 @@ public class TestController {
             "java_version", System.getProperty("java.version"),
             "os_name", System.getProperty("os.name"),
             "application_name", "Inventory Manager Backend",
-            "version", "1.0.0-SNAPSHOT"
+            "version", "2.0.0"
         ));
     }
 }

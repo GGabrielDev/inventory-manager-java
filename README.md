@@ -66,11 +66,15 @@ If you use a custom user/password, make sure to update your `backend/.env` file.
 - Build all: `mvn -q -DskipTests package`
 - Test backend: `cd backend && mvn test`
 
-## Packaging and migration docs
+## Documentation
 
-- `docs/LOCAL-RUN-AND-PACKAGING.md`
-- `docs/MIGRATION-NOTES.md`
-- `docs/ITEM-REQUEST-WORKFLOW.md`
+Detailed guides for specific systems:
+- [Physical Hierarchy & Locations](docs/LOCATIONS-AND-BRANCHES.md)
+- [Bags & Displacements](docs/BAGS-AND-DISPLACEMENTS.md)
+- [Item Request Workflows](docs/ITEM-REQUEST-WORKFLOW.md)
+- [Testing Strategy](docs/TESTING.md)
+- [Local Run & Packaging](docs/LOCAL-RUN-AND-PACKAGING.md)
+- [Migration Notes](docs/MIGRATION-NOTES.md)
 
 ## GitHub repository setup
 
