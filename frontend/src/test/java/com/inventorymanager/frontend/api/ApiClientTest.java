@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,8 +30,25 @@ class ApiClientTest {
     }
 
     @Test
+    void listAppendsParamsOnlyIfMissing() throws Exception {
+        String json = "{\"data\": []}";
+        
+        // Case 1: No params provided
+        mockWebServer.enqueue(new MockResponse().setBody(json).addHeader("Content-Type", "application/json"));
+        apiClient.list("items");
+        RecordedRequest request1 = mockWebServer.takeRequest();
+        assertTrue(request1.getPath().contains("page=1"), "Should append page=1 if missing");
+
+        // Case 2: Params already provided
+        mockWebServer.enqueue(new MockResponse().setBody(json).addHeader("Content-Type", "application/json"));
+        apiClient.list("items?custom=true");
+        RecordedRequest request2 = mockWebServer.takeRequest();
+        assertFalse(request2.getPath().contains("page=1"), "Should NOT append default params if '?' exists");
+        assertTrue(request2.getPath().contains("custom=true"));
+    }
+
+    @Test
     void meParsesRolesCorrectly() throws Exception {
-        // Mock a response that matches the backend /api/auth/me structure
         String json = """
             {
                 "id": 1,
@@ -48,7 +66,6 @@ class ApiClientTest {
 
         assertEquals("admin", result.get("username"));
         
-        // This is what caused the ClassCastException in the UI
         Object roles = result.get("roles");
         assertTrue(roles instanceof List, "Roles should be a list");
         
