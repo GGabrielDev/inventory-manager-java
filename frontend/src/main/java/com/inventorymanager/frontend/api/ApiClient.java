@@ -14,10 +14,12 @@ public class ApiClient {
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String baseUrl;
+    private final boolean verbose;
     private String token;
 
     public ApiClient(String baseUrl) {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        this.verbose = Boolean.getBoolean("app.verbose");
     }
 
     public String getBaseUrl() {
@@ -26,11 +28,16 @@ public class ApiClient {
 
     public void login(String username, String password) throws IOException, InterruptedException {
         String body = objectMapper.writeValueAsString(Map.of("username", username, "password", password));
+        if (verbose) System.out.println(">>> LOGIN REQUEST: " + username);
+        
         HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/auth/login"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        
+        if (verbose) System.out.println("<<< LOGIN RESPONSE: " + response.statusCode());
+
         if (response.statusCode() >= 400) {
             throw new IOException("Login failed: " + response.body());
         }
@@ -71,6 +78,11 @@ public class ApiClient {
     }
 
     private HttpResponse<String> sendAuthorized(String path, String method, String body) throws IOException, InterruptedException {
+        if (verbose) {
+            System.out.println(">>> API REQUEST: " + method + " " + path);
+            if (body != null) System.out.println("BODY: " + body);
+        }
+
         HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(baseUrl + path))
                 .header("Authorization", "Bearer " + token)
                 .header("Content-Type", "application/json");
@@ -81,6 +93,12 @@ public class ApiClient {
             default -> builder.GET();
         }
         HttpResponse<String> response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        
+        if (verbose) {
+            System.out.println("<<< API RESPONSE: " + response.statusCode());
+            System.out.println("PAYLOAD: " + response.body());
+        }
+
         if (response.statusCode() >= 400) {
             throw new IOException("Request failed (" + response.statusCode() + "): " + response.body());
         }

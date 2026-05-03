@@ -15,6 +15,17 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 public class InventoryManagerBackendApplication {
     
     public static void main(String[] args) {
+        boolean verbose = false;
+        for (String arg : args) {
+            if ("--verbose".equalsIgnoreCase(arg)) {
+                verbose = true;
+                System.setProperty("logging.level.com.inventorymanager", "DEBUG");
+                System.setProperty("logging.level.org.hibernate.SQL", "DEBUG");
+                System.setProperty("spring.jpa.properties.hibernate.format_sql", "true");
+                break;
+            }
+        }
+
         String host = getEnv("DB_HOST", "localhost");
         String port = getEnv("DB_PORT", "5432");
         String dbName = getEnv("DB_NAME", "inventory_manager_java");
@@ -33,6 +44,9 @@ public class InventoryManagerBackendApplication {
             System.err.println("  3. Credentials in application.yml (or DB_USER/DB_PASSWORD) are correct.");
             System.err.println("");
             System.err.println(String.format("Attempted connection: %s", url));
+            if (verbose) {
+                System.err.println("Verbose mode: ON");
+            }
             System.err.println("========================================================================");
             System.exit(1);
         }
