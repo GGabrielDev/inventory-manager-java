@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.6.0...v1.6.1) (2026-05-03)
+
+
+### Bug Fixes
+
+* Malformed pagination path in frontend ([#32](https://github.com/GGabrielDev/inventory-manager-java/issues/32)) ([e03812a](https://github.com/GGabrielDev/inventory-manager-java/commit/e03812a71d933fc3c1c79f1659547e8457a02843))
+
 ## [1.6.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.5.1...v1.6.0) (2026-04-27)
 
 
