@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.6.1...v1.7.0) (2026-05-03)
+
+
+### Features
+
+* Add verbose logging flag and enhance error popups ([#36](https://github.com/GGabrielDev/inventory-manager-java/issues/36)) ([803b1c6](https://github.com/GGabrielDev/inventory-manager-java/commit/803b1c647cc2ee20a464328a03dd62b5367dec1e))
+
 ## [1.6.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.6.0...v1.6.1) (2026-05-03)
 
 
