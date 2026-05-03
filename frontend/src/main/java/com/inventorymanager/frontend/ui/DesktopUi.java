@@ -676,7 +676,39 @@ public class DesktopUi {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle(title);
             alert.setHeaderText(message);
-            alert.getDialogPane().setContent(new Label(ex.getMessage()));
+            
+            // Format detailed error report
+            StringBuilder sb = new StringBuilder();
+            sb.append("--- ERROR REPORT ---\n");
+            sb.append("Timestamp: ").append(java.time.LocalDateTime.now()).append("\n");
+            sb.append("Title: ").append(title).append("\n");
+            sb.append("Message: ").append(message).append("\n");
+            sb.append("Exception: ").append(ex.toString()).append("\n\n");
+            sb.append("--- STACK TRACE ---\n");
+            java.io.StringWriter sw = new java.io.StringWriter();
+            java.io.PrintWriter pw = new java.io.PrintWriter(sw);
+            ex.printStackTrace(pw);
+            sb.append(sw.toString());
+            
+            String detailedReport = sb.toString();
+
+            TextArea textArea = new TextArea(detailedReport);
+            textArea.setEditable(false);
+            textArea.setWrapText(true);
+            textArea.setPrefHeight(200);
+            textArea.setPrefWidth(500);
+
+            Button copyBtn = new Button("📋 Copy error to clipboard");
+            copyBtn.setOnAction(e -> {
+                javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
+                javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+                content.putString(detailedReport);
+                clipboard.setContent(content);
+                copyBtn.setText("✅ Copied!");
+            });
+
+            VBox content = new VBox(10, new Label("Error details:"), textArea, copyBtn, new Label("Please check connection or contact programmer."));
+            alert.getDialogPane().setContent(content);
             alert.showAndWait();
         });
     }
