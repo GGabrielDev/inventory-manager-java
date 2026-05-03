@@ -1,5 +1,6 @@
 package com.inventorymanager.backend.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.inventorymanager.backend.common.BaseEntity;
 import jakarta.persistence.*;
@@ -33,7 +34,7 @@ public class Branch extends BaseEntity {
     private Parish parish;
 
     @OneToMany(mappedBy = "branch")
-    @JsonIgnoreProperties("branch")
+    @JsonIgnore
     private Set<Department> departments = new HashSet<>();
 
     public Long getId() {
