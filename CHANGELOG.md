@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.7.0...v1.7.1) (2026-05-03)
+
+
+### Bug Fixes
+
+* Resolve critical UI crashes and complete identity modules ([#38](https://github.com/GGabrielDev/inventory-manager-java/issues/38)) ([c2fd5ee](https://github.com/GGabrielDev/inventory-manager-java/commit/c2fd5ee1f7871a12bc2bf2e6f02f9d2514fdd4c8))
+
 ## [1.7.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.6.1...v1.7.0) (2026-05-03)
 
 
