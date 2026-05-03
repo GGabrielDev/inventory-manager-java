@@ -136,13 +136,13 @@ public class DesktopUi {
         if (isAdmin) {
             sidebar.getChildren().add(new Separator());
             sidebar.getChildren().add(createNavGroupLabel(bundle.getString("nav.admin")));
-            sidebar.getChildren().add(createNavButton("📜 Audit Logs", this::showGlobalAuditView));
-            sidebar.getChildren().add(createNavButton("🏢 Branches", () -> showResourceView("Branches", "branches")));
-            sidebar.getChildren().add(createNavButton("🏢 Departments", () -> showResourceView("Departments", "departments")));
+            sidebar.getChildren().add(createNavButton(bundle.getString("nav.audit_logs"), this::showGlobalAuditView));
+            sidebar.getChildren().add(createNavButton(bundle.getString("nav.branches"), () -> showResourceView(bundle.getString("nav.branches"), "branches")));
+            sidebar.getChildren().add(createNavButton(bundle.getString("nav.departments"), () -> showResourceView(bundle.getString("nav.departments"), "departments")));
             
             sidebar.getChildren().add(new Separator());
             sidebar.getChildren().add(createNavGroupLabel("IDENTITY"));
-            sidebar.getChildren().add(createNavButton("👥 Users", () -> showResourceView("Users", "users")));
+            sidebar.getChildren().add(createNavButton(bundle.getString("nav.users"), () -> showResourceView(bundle.getString("nav.users"), "users")));
             sidebar.getChildren().add(createNavButton("🛡️ Roles", () -> showResourceView("Roles", "roles")));
             sidebar.getChildren().add(createNavButton("🔑 Permissions", () -> showResourceView("Permissions", "permissions")));
 
@@ -155,6 +155,12 @@ public class DesktopUi {
         
         sidebar.getChildren().add(new Separator());
         sidebar.getChildren().add(createNavButton(bundle.getString("nav.settings"), this::showSettingsPopup));
+
+        ScrollPane sidebarScroll = new ScrollPane(sidebar);
+        sidebarScroll.setFitToWidth(true);
+        sidebarScroll.setPrefWidth(240);
+        sidebarScroll.setStyle("-fx-background-color: #2c3e50; -fx-border-color: #2c3e50;");
+        sidebarScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
 
         HBox header = new HBox(15);
         header.setPadding(new Insets(15, 20, 15, 20));
@@ -182,7 +188,7 @@ public class DesktopUi {
         
         header.getChildren().addAll(spacer, userLabel, logoutBtn);
 
-        mainLayout.setLeft(sidebar);
+        mainLayout.setLeft(sidebarScroll);
         mainLayout.setTop(header);
         mainLayout.setCenter(contentArea);
 
@@ -238,12 +244,27 @@ public class DesktopUi {
 
     private void showResourceView(String title, String resource) {
         VBox root = new VBox(15);
-        HBox header = new HBox(10);
+        HBox filterBar = new HBox(10);
+        filterBar.setAlignment(Pos.CENTER_LEFT);
+        filterBar.setPadding(new Insets(10));
+        filterBar.setStyle("-fx-background-color: #f8f9fa; -fx-border-radius: 5;");
+        
+        ComboBox<IdName> stateFilter = new ComboBox<>();
+        stateFilter.setPromptText("State...");
+        ComboBox<IdName> branchFilter = new ComboBox<>();
+        branchFilter.setPromptText("Branch...");
+        Button applyFilter = new Button(bundle.getString("resource.apply"));
+        Button clearFilter = new Button(bundle.getString("resource.clear"));
+        
+        filterBar.getChildren().addAll(new Label(bundle.getString("resource.filter")), stateFilter, branchFilter, applyFilter, clearFilter);
+        
+        HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
         Label t = new Label(title);
         t.setFont(Font.font("System", FontWeight.BOLD, 20));
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
+        
         Button refreshBtn = new Button(bundle.getString("resource.refresh"));
         Button addBtn = new Button(bundle.getString("resource.add"));
         addBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
@@ -252,39 +273,71 @@ public class DesktopUi {
         TableView<Map<String, Object>> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         
-        refreshBtn.setOnAction(e -> loadTableData(table, resource));
-        addBtn.setOnAction(e -> showCreateForm(title, resource));
+        applyFilter.setOnAction(e -> loadFilteredData(table, title, resource, stateFilter.getValue(), branchFilter.getValue()));
+        clearFilter.setOnAction(e -> {
+            stateFilter.setValue(null);
+            branchFilter.setValue(null);
+            loadFilteredData(table, title, resource, null, null);
+        });
+        refreshBtn.setOnAction(e -> loadFilteredData(table, title, resource, stateFilter.getValue(), branchFilter.getValue()));
+        addBtn.setOnAction(e -> showUpsertForm(title, resource, null));
 
-        root.getChildren().addAll(header, table);
+        Platform.runLater(() -> {
+            try {
+                stateFilter.setItems(fetchIdNames("states"));
+                branchFilter.setItems(fetchIdNames("branches"));
+            } catch (Exception ignored) {}
+        });
+
+        root.getChildren().addAll(header, filterBar, table);
         setView(root);
-        loadTableData(table, resource);
+        loadFilteredData(table, title, resource, null, null);
     }
 
-    private void loadTableData(TableView<Map<String, Object>> table, String resource) {
+    private void loadFilteredData(TableView<Map<String, Object>> table, String title, String resource, IdName state, IdName branch) {
         try {
-            List<Map<String, Object>> data = apiClient.list(resource);
-            table.getColumns().clear();
-            if (!data.isEmpty()) {
-                Map<String, Object> first = data.get(0);
-                for (String key : first.keySet()) {
-                    TableColumn<Map<String, Object>, String> col = new TableColumn<>(key.toUpperCase());
-                    col.setCellValueFactory(cellData -> {
-                        Object val = cellData.getValue().get(key);
-                        if (val instanceof Map) val = ((Map<?, ?>) val).get("name");
-                        return new javafx.beans.property.SimpleStringProperty(val == null ? "" : val.toString());
-                    });
-                    table.getColumns().add(col);
-                }
-                
-                // Add Actions column
-                TableColumn<Map<String, Object>, Void> actionCol = new TableColumn<>("ACTIONS");
+            String path = resource + "?page=1&pageSize=100";
+            if (state != null) path += "&stateId=" + state.id;
+            if (branch != null) path += "&branchId=" + branch.id;
+            List<Map<String, Object>> data = apiClient.list(path);
+            updateTableColumns(table, data, title, resource);
+        } catch (Exception e) {
+            showErrorPopup("Fetch Error", "Could not load data", e);
+        }
+    }
+
+    private void updateTableColumns(TableView<Map<String, Object>> table, List<Map<String, Object>> data, String title, String resource) {
+        if (table.getColumns().isEmpty() && data != null && !data.isEmpty()) {
+            Map<String, Object> first = data.get(0);
+            for (String key : first.keySet()) {
+                String headerText = bundle.containsKey("col." + key) ? bundle.getString("col." + key) : key.toUpperCase();
+                TableColumn<Map<String, Object>, String> col = new TableColumn<>(headerText);
+                col.setCellValueFactory(cellData -> {
+                    Object val = cellData.getValue().get(key);
+                    if (val instanceof Map) {
+                        val = ((Map<?, ?>) val).get("name");
+                    } else if (val instanceof List) {
+                        List<?> list = (List<?>) val;
+                        if (!list.isEmpty() && list.get(0) instanceof Map) {
+                            val = list.stream().map(m -> ((Map<?,?>)m).get("name").toString()).collect(Collectors.joining(", "));
+                        } else {
+                            val = list.stream().map(Object::toString).collect(Collectors.joining(", "));
+                        }
+                    }
+                    return new javafx.beans.property.SimpleStringProperty(val == null ? "" : val.toString());
+                });
+                table.getColumns().add(col);
+            }
+            if (title != null && resource != null) {
+                String actionText = bundle.containsKey("table.actions") ? bundle.getString("table.actions") : "ACTIONS";
+                TableColumn<Map<String, Object>, Void> actionCol = new TableColumn<>(actionText);
                 actionCol.setCellFactory(param -> new TableCell<>() {
-                    private final Button editBtn = new Button("Edit");
+                    private final Button editBtn = new Button(bundle.containsKey("btn.edit") ? bundle.getString("btn.edit") : "Edit");
                     {
                         editBtn.setStyle("-fx-font-size: 10px;");
                         editBtn.setOnAction(event -> {
                             Map<String, Object> rowData = getTableView().getItems().get(getIndex());
-                            showPlaceholder("Edit functionality for ID " + rowData.get("id"));
+                            showUpsertForm(title, resource, rowData);
                         });
                     }
                     @Override protected void updateItem(Void item, boolean empty) {
@@ -293,10 +346,13 @@ public class DesktopUi {
                     }
                 });
                 table.getColumns().add(actionCol);
-
-                table.setItems(FXCollections.observableArrayList(data));
             }
-        } catch (Exception e) { showErrorPopup("Fetch Error", "Could not load " + resource, e); }
+        }
+        if (data != null) {
+            table.setItems(FXCollections.observableArrayList(data));
+        } else {
+            table.setItems(FXCollections.observableArrayList());
+        }
     }
 
     private void showGlobalAuditView() {
@@ -305,7 +361,7 @@ public class DesktopUi {
         title.setFont(Font.font("System", FontWeight.BOLD, 20));
         HBox controls = new HBox(10);
         ComboBox<String> entityType = new ComboBox<>(FXCollections.observableArrayList(
-            "item", "branch", "user", "bag", "item_request", "displacement"
+            "item", "branch", "user", "bag", "item_request", "displacement", "department", "category", "role", "state", "municipality", "parish"
         ));
         entityType.setPromptText(bundle.getString("audit.type"));
         TextField entityId = new TextField();
@@ -317,7 +373,8 @@ public class DesktopUi {
 
         fetchBtn.setOnAction(e -> {
             if (entityType.getValue() == null || entityId.getText().isBlank()) {
-                showErrorPopup("Input Error", "Please select type and enter ID", new Exception("Missing audit parameters"));
+                String errMsg = bundle.containsKey("error.missing_audit_params") ? bundle.getString("error.missing_audit_params") : "Please select type and enter ID";
+                showErrorPopup("Input Error", errMsg, new Exception("Missing audit parameters"));
                 return;
             }
             try {
@@ -325,56 +382,45 @@ public class DesktopUi {
                 Map<String, Object> response = apiClient.get(path);
                 @SuppressWarnings("unchecked")
                 List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
-                updateTableColumns(table, data);
+                updateTableColumns(table, data, null, null);
             } catch (Exception ex) { showErrorPopup(bundle.getString("audit.error"), "Failed to fetch logs", ex); }
         });
         root.getChildren().addAll(title, controls, table);
         setView(root);
     }
 
-    private void updateTableColumns(TableView<Map<String, Object>> table, List<Map<String, Object>> data) {
-        table.getColumns().clear();
-        if (data != null && !data.isEmpty()) {
-            Map<String, Object> first = data.get(0);
-            for (String key : first.keySet()) {
-                TableColumn<Map<String, Object>, String> col = new TableColumn<>(key.toUpperCase());
-                col.setCellValueFactory(cellData -> {
-                    Object val = cellData.getValue().get(key);
-                    if (val instanceof Map) val = ((Map<?, ?>) val).get("name");
-                    return new javafx.beans.property.SimpleStringProperty(val == null ? "" : val.toString());
-                });
-                table.getColumns().add(col);
-            }
-            table.setItems(FXCollections.observableArrayList(data));
-        }
-    }
-
-    private void showCreateForm(String title, String resource) {
+    private void showUpsertForm(String title, String resource, Map<String, Object> rowData) {
         switch (resource) {
-            case "items" -> showItemCreateForm();
-            case "bags" -> showBagCreateForm();
-            case "displacements" -> showDisplacementCreateForm();
-            case "branches" -> showBranchCreateForm();
-            case "departments" -> showDepartmentCreateForm();
-            case "users" -> showUserCreateForm();
-            case "states", "municipalities", "parishes", "categories", "roles", "permissions" -> showNamedCreateForm(title, resource);
+            case "items" -> showItemUpsertForm(rowData);
+            case "bags" -> showBagUpsertForm(rowData);
+            case "displacements" -> showDisplacementUpsertForm(rowData);
+            case "branches" -> showBranchUpsertForm(rowData);
+            case "departments" -> showDepartmentUpsertForm(rowData);
+            case "users" -> showUserUpsertForm(rowData);
+            case "states", "municipalities", "parishes", "categories", "roles", "permissions" -> showNamedUpsertForm(title, resource, rowData);
             default -> showPlaceholder("Form for " + title);
         }
     }
 
-    private void showNamedCreateForm(String title, String resource) {
+    private void showNamedUpsertForm(String title, String resource, Map<String, Object> rowData) {
+        boolean isEdit = rowData != null;
         VBox root = new VBox(20);
-        Label t = new Label("Add New " + title);
+        Label t = new Label(isEdit ? bundle.getString("form.edit") + " " + title : bundle.getString("resource.add") + " " + title);
         t.setFont(Font.font("System", FontWeight.BOLD, 18));
         GridPane grid = new GridPane(); grid.setHgap(10); grid.setVgap(10);
-        TextField nameField = new TextField();
-        grid.addRow(0, new Label("Name:"), nameField);
+        TextField nameField = new TextField(isEdit && rowData.get("name") != null ? rowData.get("name").toString() : "");
+        grid.addRow(0, new Label(bundle.getString("form.name")), nameField);
         
-        Button saveBtn = new Button("Create");
+        Button saveBtn = new Button(bundle.getString("form.save"));
         saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             try {
-                apiClient.create(resource, Map.of("name", nameField.getText()));
+                Map<String, Object> payload = Map.of("name", nameField.getText());
+                if (isEdit) {
+                    apiClient.update(resource, ((Number)rowData.get("id")).longValue(), payload);
+                } else {
+                    apiClient.create(resource, payload);
+                }
                 showResourceView(title, resource);
             } catch (Exception ex) { showErrorPopup("Save Error", "Failed", ex); }
         });
@@ -382,37 +428,53 @@ public class DesktopUi {
         setView(root);
     }
 
-    private void showItemCreateForm() {
+    private void showItemUpsertForm(Map<String, Object> rowData) {
+        boolean isEdit = rowData != null;
         VBox root = new VBox(20);
-        Label t = new Label(bundle.getString("resource.add"));
+        Label t = new Label(isEdit ? bundle.getString("form.edit") : bundle.getString("resource.add"));
         t.setFont(Font.font("System", FontWeight.BOLD, 18));
         GridPane grid = new GridPane(); grid.setHgap(10); grid.setVgap(10);
-        TextField nameField = new TextField();
-        TextField qtyField = new TextField("1");
+        TextField nameField = new TextField(isEdit && rowData.get("name") != null ? rowData.get("name").toString() : "");
+        TextField qtyField = new TextField(isEdit && rowData.get("quantity") != null ? rowData.get("quantity").toString() : "1");
         ComboBox<String> unitCombo = new ComboBox<>(FXCollections.observableArrayList("UND", "KG", "L", "M"));
-        unitCombo.setValue("UND");
+        unitCombo.setValue(isEdit && rowData.get("unit") != null ? rowData.get("unit").toString() : "UND");
         ComboBox<IdName> branchCombo = new ComboBox<>();
         ComboBox<IdName> deptCombo = new ComboBox<>();
         grid.addRow(0, new Label(bundle.getString("form.name")), nameField);
         grid.addRow(1, new Label(bundle.getString("form.qty")), qtyField);
         grid.addRow(2, new Label(bundle.getString("form.unit")), unitCombo);
         grid.addRow(3, new Label(bundle.getString("form.branch")), branchCombo);
-        grid.addRow(4, new Label("Dept:"), deptCombo);
+        grid.addRow(4, new Label(bundle.containsKey("form.dept") ? bundle.getString("form.dept") : "Dept Name:"), deptCombo);
         Platform.runLater(() -> {
             try {
-                branchCombo.setItems(fetchIdNames("branches"));
-                deptCombo.setItems(fetchIdNames("departments"));
+                ObservableList<IdName> branches = fetchIdNames("branches");
+                branchCombo.setItems(branches);
+                if (isEdit && rowData.get("branch") instanceof Map) {
+                    Long branchId = ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue();
+                    branches.stream().filter(b -> b.id.equals(branchId)).findFirst().ifPresent(branchCombo::setValue);
+                }
+                ObservableList<IdName> depts = fetchIdNames("departments");
+                deptCombo.setItems(depts);
+                if (isEdit && rowData.get("department") instanceof Map) {
+                    Long deptId = ((Number) ((Map<?,?>)rowData.get("department")).get("id")).longValue();
+                    depts.stream().filter(d -> d.id.equals(deptId)).findFirst().ifPresent(deptCombo::setValue);
+                }
             } catch (Exception ignored) {}
         });
-        Button saveBtn = new Button(bundle.getString("form.create"));
+        Button saveBtn = new Button(bundle.getString("form.save"));
         saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             try {
-                apiClient.create("items", Map.of(
+                Map<String, Object> payload = Map.of(
                     "name", nameField.getText(), "quantity", Integer.parseInt(qtyField.getText()),
                     "unit", unitCombo.getValue(), "branchId", branchCombo.getValue().id,
                     "departmentId", deptCombo.getValue().id
-                ));
+                );
+                if (isEdit) {
+                    apiClient.update("items", ((Number)rowData.get("id")).longValue(), payload);
+                } else {
+                    apiClient.create("items", payload);
+                }
                 showResourceView(bundle.getString("nav.assets"), "items");
             } catch (Exception ex) { showErrorPopup("Save Error", "Failed", ex); }
         });
@@ -420,13 +482,15 @@ public class DesktopUi {
         setView(root);
     }
 
-    private void showBranchCreateForm() {
+    private void showBranchUpsertForm(Map<String, Object> rowData) {
+        boolean isEdit = rowData != null;
         VBox root = new VBox(20);
-        Label t = new Label(bundle.getString("form.register") + " Branch");
+        Label t = new Label(isEdit ? bundle.getString("form.edit") : bundle.getString("form.register") + " Branch");
         t.setFont(Font.font("System", FontWeight.BOLD, 18));
         GridPane grid = new GridPane(); grid.setHgap(10); grid.setVgap(10);
-        TextField nameField = new TextField();
-        TextArea addrArea = new TextArea(); addrArea.setPrefRowCount(2);
+        TextField nameField = new TextField(isEdit && rowData.get("name") != null ? rowData.get("name").toString() : "");
+        TextArea addrArea = new TextArea(isEdit && rowData.get("address") != null ? rowData.get("address").toString() : ""); 
+        addrArea.setPrefRowCount(2);
         ComboBox<IdName> stateCombo = new ComboBox<>();
         ComboBox<IdName> muniCombo = new ComboBox<>();
         ComboBox<IdName> parishCombo = new ComboBox<>();
@@ -437,24 +501,54 @@ public class DesktopUi {
         grid.addRow(4, new Label("Parish:"), parishCombo);
         Platform.runLater(() -> {
             try {
-                stateCombo.setItems(fetchIdNames("states"));
+                ObservableList<IdName> states = fetchIdNames("states");
+                stateCombo.setItems(states);
+                if (isEdit && rowData.get("state") instanceof Map) {
+                    Long id = ((Number) ((Map<?,?>)rowData.get("state")).get("id")).longValue();
+                    states.stream().filter(s -> s.id.equals(id)).findFirst().ifPresent(stateCombo::setValue);
+                }
                 stateCombo.setOnAction(e -> {
-                   try { muniCombo.setItems(fetchIdNames("municipalities")); } catch (Exception ignored) {}
+                   try { 
+                       ObservableList<IdName> munis = fetchIdNames("municipalities");
+                       muniCombo.setItems(munis); 
+                   } catch (Exception ignored) {}
                 });
                 muniCombo.setOnAction(e -> {
-                   try { parishCombo.setItems(fetchIdNames("parishes")); } catch (Exception ignored) {}
+                   try { 
+                       ObservableList<IdName> parishes = fetchIdNames("parishes");
+                       parishCombo.setItems(parishes); 
+                   } catch (Exception ignored) {}
                 });
+                if (isEdit) {
+                    ObservableList<IdName> munis = fetchIdNames("municipalities");
+                    muniCombo.setItems(munis);
+                    if (rowData.get("municipality") instanceof Map) {
+                        Long id = ((Number) ((Map<?,?>)rowData.get("municipality")).get("id")).longValue();
+                        munis.stream().filter(m -> m.id.equals(id)).findFirst().ifPresent(muniCombo::setValue);
+                    }
+                    ObservableList<IdName> parishes = fetchIdNames("parishes");
+                    parishCombo.setItems(parishes);
+                    if (rowData.get("parish") instanceof Map) {
+                        Long id = ((Number) ((Map<?,?>)rowData.get("parish")).get("id")).longValue();
+                        parishes.stream().filter(p -> p.id.equals(id)).findFirst().ifPresent(parishCombo::setValue);
+                    }
+                }
             } catch (Exception ignored) {}
         });
-        Button saveBtn = new Button(bundle.getString("form.register"));
+        Button saveBtn = new Button(bundle.getString("form.save"));
         saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             try {
-                apiClient.create("branches", Map.of(
+                Map<String, Object> payload = Map.of(
                     "name", nameField.getText(), "address", addrArea.getText(),
                     "stateId", stateCombo.getValue().id, "municipalityId", muniCombo.getValue().id,
                     "parishId", parishCombo.getValue().id
-                ));
+                );
+                if (isEdit) {
+                    apiClient.update("branches", ((Number)rowData.get("id")).longValue(), payload);
+                } else {
+                    apiClient.create("branches", payload);
+                }
                 showResourceView(bundle.getString("nav.branches"), "branches");
             } catch (Exception ex) { showErrorPopup("Save Error", "Failed", ex); }
         });
@@ -462,23 +556,36 @@ public class DesktopUi {
         setView(root);
     }
 
-    private void showDepartmentCreateForm() {
+    private void showDepartmentUpsertForm(Map<String, Object> rowData) {
+        boolean isEdit = rowData != null;
         VBox root = new VBox(20);
-        Label t = new Label(bundle.getString("form.create") + " Department");
+        Label t = new Label(isEdit ? bundle.getString("form.edit") : bundle.getString("form.create") + " Department");
         t.setFont(Font.font("System", FontWeight.BOLD, 18));
         GridPane grid = new GridPane(); grid.setHgap(10); grid.setVgap(10);
-        TextField nameField = new TextField();
+        TextField nameField = new TextField(isEdit && rowData.get("name") != null ? rowData.get("name").toString() : "");
         ComboBox<IdName> branchCombo = new ComboBox<>();
         grid.addRow(0, new Label(bundle.getString("form.dept")), nameField);
         grid.addRow(1, new Label(bundle.getString("form.branch")), branchCombo);
         Platform.runLater(() -> {
-            try { branchCombo.setItems(fetchIdNames("branches")); } catch (Exception ignored) {}
+            try { 
+                ObservableList<IdName> branches = fetchIdNames("branches");
+                branchCombo.setItems(branches); 
+                if (isEdit && rowData.get("branch") instanceof Map) {
+                    Long id = ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue();
+                    branches.stream().filter(b -> b.id.equals(id)).findFirst().ifPresent(branchCombo::setValue);
+                }
+            } catch (Exception ignored) {}
         });
-        Button saveBtn = new Button(bundle.getString("form.create"));
+        Button saveBtn = new Button(bundle.getString("form.save"));
         saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             try {
-                apiClient.create("departments", Map.of("name", nameField.getText(), "branchId", branchCombo.getValue().id));
+                Map<String, Object> payload = Map.of("name", nameField.getText(), "branchId", branchCombo.getValue().id);
+                if (isEdit) {
+                    apiClient.update("departments", ((Number)rowData.get("id")).longValue(), payload);
+                } else {
+                    apiClient.create("departments", payload);
+                }
                 showResourceView(bundle.getString("nav.departments"), "departments");
             } catch (Exception ex) { showErrorPopup("Save Error", "Failed", ex); }
         });
@@ -486,28 +593,68 @@ public class DesktopUi {
         setView(root);
     }
 
-    private void showUserCreateForm() {
+    private void showUserUpsertForm(Map<String, Object> rowData) {
+        boolean isEdit = rowData != null;
         VBox root = new VBox(20);
-        Label t = new Label(bundle.getString("form.register") + " User");
+        Label t = new Label(isEdit ? bundle.getString("form.edit") : bundle.getString("form.register") + " User");
         t.setFont(Font.font("System", FontWeight.BOLD, 18));
         GridPane grid = new GridPane(); grid.setHgap(10); grid.setVgap(10);
-        TextField userField = new TextField();
+        TextField userField = new TextField(isEdit && rowData.get("username") != null ? rowData.get("username").toString() : "");
         PasswordField passField = new PasswordField();
+        if (!isEdit) passField.setPromptText("Required");
+        else passField.setPromptText("Leave blank to keep same password");
         ComboBox<IdName> branchCombo = new ComboBox<>();
+        
+        ListView<IdName> rolesList = new ListView<>();
+        rolesList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        rolesList.setPrefHeight(100);
+
         grid.addRow(0, new Label(bundle.getString("form.user")), userField);
         grid.addRow(1, new Label(bundle.getString("form.pass")), passField);
         grid.addRow(2, new Label(bundle.getString("form.branch")), branchCombo);
+        grid.addRow(3, new Label(bundle.containsKey("form.roles") ? bundle.getString("form.roles") : "Roles:"), rolesList);
+
         Platform.runLater(() -> {
-            try { branchCombo.setItems(fetchIdNames("branches")); } catch (Exception ignored) {}
+            try { 
+                ObservableList<IdName> branches = fetchIdNames("branches");
+                branchCombo.setItems(branches); 
+                if (isEdit && rowData.get("branch") instanceof Map) {
+                    Long id = ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue();
+                    branches.stream().filter(b -> b.id.equals(id)).findFirst().ifPresent(branchCombo::setValue);
+                }
+                
+                ObservableList<IdName> roles = fetchIdNames("roles");
+                rolesList.setItems(roles);
+                if (isEdit && rowData.get("roles") instanceof List) {
+                    List<?> userRoles = (List<?>) rowData.get("roles");
+                    for (Object roleObj : userRoles) {
+                        if (roleObj instanceof Map) {
+                            Long roleId = ((Number) ((Map<?,?>)roleObj).get("id")).longValue();
+                            roles.stream().filter(r -> r.id.equals(roleId)).findFirst().ifPresent(rolesList.getSelectionModel()::select);
+                        } else if (roleObj instanceof String) {
+                            roles.stream().filter(r -> r.name.equalsIgnoreCase(roleObj.toString())).findFirst().ifPresent(rolesList.getSelectionModel()::select);
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
         });
-        Button saveBtn = new Button(bundle.getString("form.register"));
+        Button saveBtn = new Button(bundle.getString("form.save"));
         saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             try {
-                apiClient.create("users", Map.of(
-                    "username", userField.getText(), "password", passField.getText(),
-                    "branchId", branchCombo.getValue().id, "roleIds", List.of()
-                ));
+                List<Long> roleIds = rolesList.getSelectionModel().getSelectedItems().stream().map(r -> r.id).collect(Collectors.toList());
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("username", userField.getText());
+                if (!passField.getText().isBlank()) payload.put("password", passField.getText());
+                else if (!isEdit) payload.put("password", "");
+                if (branchCombo.getValue() != null) payload.put("branchId", branchCombo.getValue().id);
+                payload.put("roleIds", roleIds);
+
+                if (isEdit) {
+                    apiClient.update("users", ((Number)rowData.get("id")).longValue(), payload);
+                } else {
+                    apiClient.create("users", payload);
+                }
                 showResourceView(bundle.getString("nav.users"), "users");
             } catch (Exception ex) { showErrorPopup("Save Error", "Failed", ex); }
         });
@@ -515,13 +662,14 @@ public class DesktopUi {
         setView(root);
     }
 
-    private void showBagCreateForm() {
+    private void showBagUpsertForm(Map<String, Object> rowData) {
+        boolean isEdit = rowData != null;
         VBox root = new VBox(20);
-        Label t = new Label(bundle.getString("form.create") + " Bag");
+        Label t = new Label(isEdit ? bundle.getString("form.edit") : bundle.getString("form.create") + " Bag");
         t.setFont(Font.font("System", FontWeight.BOLD, 18));
         GridPane grid = new GridPane(); grid.setHgap(10); grid.setVgap(10);
-        TextField nameField = new TextField();
-        TextField barcodeField = new TextField();
+        TextField nameField = new TextField(isEdit && rowData.get("name") != null ? rowData.get("name").toString() : "");
+        TextField barcodeField = new TextField(isEdit && rowData.get("barcode") != null ? rowData.get("barcode").toString() : "");
         ComboBox<IdName> branchCombo = new ComboBox<>();
         ComboBox<IdName> deptCombo = new ComboBox<>();
         grid.addRow(0, new Label(bundle.getString("form.name")), nameField);
@@ -530,19 +678,34 @@ public class DesktopUi {
         grid.addRow(3, new Label("Dept:"), deptCombo);
         Platform.runLater(() -> {
             try {
-                branchCombo.setItems(fetchIdNames("branches"));
-                deptCombo.setItems(fetchIdNames("departments"));
+                ObservableList<IdName> branches = fetchIdNames("branches");
+                branchCombo.setItems(branches);
+                if (isEdit && rowData.get("branch") instanceof Map) {
+                    Long id = ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue();
+                    branches.stream().filter(b -> b.id.equals(id)).findFirst().ifPresent(branchCombo::setValue);
+                }
+                ObservableList<IdName> depts = fetchIdNames("departments");
+                deptCombo.setItems(depts);
+                if (isEdit && rowData.get("assignedDepartment") instanceof Map) {
+                    Long id = ((Number) ((Map<?,?>)rowData.get("assignedDepartment")).get("id")).longValue();
+                    depts.stream().filter(d -> d.id.equals(id)).findFirst().ifPresent(deptCombo::setValue);
+                }
             } catch (Exception ignored) {}
         });
-        Button saveBtn = new Button(bundle.getString("form.create"));
+        Button saveBtn = new Button(bundle.getString("form.save"));
         saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             try {
-                apiClient.create("bags", Map.of(
+                Map<String, Object> payload = Map.of(
                     "name", nameField.getText(), "barcode", barcodeField.getText(),
                     "branchId", branchCombo.getValue().id, "assignedDepartmentId", deptCombo.getValue().id,
                     "expectedItems", List.of()
-                ));
+                );
+                if (isEdit) {
+                    apiClient.update("bags", ((Number)rowData.get("id")).longValue(), payload);
+                } else {
+                    apiClient.create("bags", payload);
+                }
                 showResourceView(bundle.getString("nav.bags"), "bags");
             } catch (Exception ex) { showErrorPopup("Save Error", "Failed", ex); }
         });
@@ -550,31 +713,45 @@ public class DesktopUi {
         setView(root);
     }
 
-    private void showDisplacementCreateForm() {
+    private void showDisplacementUpsertForm(Map<String, Object> rowData) {
+        boolean isEdit = rowData != null;
         VBox root = new VBox(20);
-        Label t = new Label(bundle.getString("nav.displacements"));
+        Label t = new Label(isEdit ? bundle.getString("form.edit") : bundle.getString("nav.displacements"));
         t.setFont(Font.font("System", FontWeight.BOLD, 18));
         GridPane grid = new GridPane(); grid.setHgap(10); grid.setVgap(10);
         ComboBox<IdName> itemCombo = new ComboBox<>();
-        TextField borrowerField = new TextField();
-        TextArea reasonArea = new TextArea(); reasonArea.setPrefRowCount(3);
+        TextField borrowerField = new TextField(isEdit && rowData.get("borrowerName") != null ? rowData.get("borrowerName").toString() : "");
+        TextArea reasonArea = new TextArea(isEdit && rowData.get("reason") != null ? rowData.get("reason").toString() : ""); 
+        reasonArea.setPrefRowCount(3);
         DatePicker datePicker = new DatePicker(java.time.LocalDate.now().plusDays(7));
         grid.addRow(0, new Label("Item:"), itemCombo);
         grid.addRow(1, new Label(bundle.getString("form.borrower")), borrowerField);
         grid.addRow(2, new Label(bundle.getString("form.reason")), reasonArea);
         grid.addRow(3, new Label(bundle.getString("form.return")), datePicker);
         Platform.runLater(() -> {
-            try { itemCombo.setItems(fetchIdNames("items")); } catch (Exception ignored) {}
+            try { 
+                ObservableList<IdName> items = fetchIdNames("items");
+                itemCombo.setItems(items); 
+                if (isEdit && rowData.get("item") instanceof Map) {
+                    Long id = ((Number) ((Map<?,?>)rowData.get("item")).get("id")).longValue();
+                    items.stream().filter(i -> i.id.equals(id)).findFirst().ifPresent(itemCombo::setValue);
+                }
+            } catch (Exception ignored) {}
         });
-        Button saveBtn = new Button(bundle.getString("form.register"));
+        Button saveBtn = new Button(bundle.getString("form.save"));
         saveBtn.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             try {
-                apiClient.create("displacements", Map.of(
+                Map<String, Object> payload = Map.of(
                     "itemId", itemCombo.getValue().id, "borrowerName", borrowerField.getText(),
                     "reason", reasonArea.getText(),
                     "expectedReturnDate", datePicker.getValue().atStartOfDay().atOffset(java.time.ZoneOffset.UTC).toString()
-                ));
+                );
+                if (isEdit) {
+                    apiClient.update("displacements", ((Number)rowData.get("id")).longValue(), payload);
+                } else {
+                    apiClient.create("displacements", payload);
+                }
                 showResourceView(bundle.getString("nav.displacements"), "displacements");
             } catch (Exception ex) { showErrorPopup("Save Error", "Failed", ex); }
         });
@@ -643,7 +820,7 @@ public class DesktopUi {
                     resultArea.getChildren().add(table);
                     Button displaceBtn = new Button(bundle.getString("audit.scanner.missing"));
                     displaceBtn.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
-                    displaceBtn.setOnAction(evt -> showDisplacementCreateForm());
+                    displaceBtn.setOnAction(evt -> showDisplacementUpsertForm(null));
                     resultArea.getChildren().add(displaceBtn);
                 }
             } catch (Exception ex) { showErrorPopup(bundle.getString("audit.error"), "Failed to fetch bag", ex); }
