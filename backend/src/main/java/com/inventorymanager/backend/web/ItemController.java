@@ -9,6 +9,9 @@ import com.inventorymanager.backend.repository.BranchRepository;
 import com.inventorymanager.backend.repository.CategoryRepository;
 import com.inventorymanager.backend.repository.DepartmentRepository;
 import com.inventorymanager.backend.repository.ItemRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/items")
+@Tag(name = "Items", description = "Core asset and inventory management")
 public class ItemController {
     private final ItemRepository repository;
     private final CategoryRepository categoryRepository;
@@ -43,11 +47,12 @@ public class ItemController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('get_item')")
+    @Operation(summary = "List all assets", description = "Retrieves a paginated list of items. Supports hierarchical filtering by location.")
     public PageResponse<Item> list(
-            @RequestParam(required = false) Long stateId,
-            @RequestParam(required = false) Long municipalityId,
-            @RequestParam(required = false) Long branchId,
-            @RequestParam(required = false) Long categoryId,
+            @Parameter(description = "Filter by state ID") @RequestParam(required = false) Long stateId,
+            @Parameter(description = "Filter by municipality ID") @RequestParam(required = false) Long municipalityId,
+            @Parameter(description = "Filter by branch ID") @RequestParam(required = false) Long branchId,
+            @Parameter(description = "Filter by category ID") @RequestParam(required = false) Long categoryId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize
     ) {

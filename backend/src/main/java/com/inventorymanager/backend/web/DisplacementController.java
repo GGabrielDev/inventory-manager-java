@@ -9,6 +9,8 @@ import com.inventorymanager.backend.domain.DisplacementStatus;
 import com.inventorymanager.backend.repository.BagRepository;
 import com.inventorymanager.backend.repository.DisplacementRepository;
 import com.inventorymanager.backend.repository.ItemRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/displacements")
+@Tag(name = "Displacements", description = "Temporary borrowing and relocation of items")
 public class DisplacementController {
     private final DisplacementRepository repository;
     private final BagRepository bagRepository;
@@ -40,18 +43,21 @@ public class DisplacementController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('get_displacement')")
+    @Operation(summary = "List all displacements", description = "Shows currently borrowed items and their expected return dates.")
     public PageResponse<Displacement> list(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize) {
         return PageUtil.from(repository.findAll(PageRequest.of(Math.max(0, page - 1), pageSize)));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('get_displacement')")
+    @Operation(summary = "Get displacement by ID")
     public Displacement get(@PathVariable Long id) {
         return repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Displacement not found"));
     }
 
     @PostMapping
     @PreAuthorize("hasAuthority('create_displacement')")
+    @Operation(summary = "Register temporary borrowing", description = "Creates a new displacement record. The item is marked as 'unofficially relocated'.")
     public Displacement create(@Valid @RequestBody CrudRequest.DisplacementUpsert request) {
         Displacement entity = new Displacement();
         mapRequestToEntity(request, entity);

@@ -9,6 +9,9 @@ import com.inventorymanager.backend.repository.BranchRepository;
 import com.inventorymanager.backend.repository.MunicipalityRepository;
 import com.inventorymanager.backend.repository.ParishRepository;
 import com.inventorymanager.backend.repository.StateRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/branches")
+@Tag(name = "Branches", description = "Management of physical offices and warehouses")
 public class BranchController {
     private final BranchRepository repository;
     private final StateRepository stateRepository;
@@ -43,9 +47,10 @@ public class BranchController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('get_branch')")
+    @Operation(summary = "List all branches", description = "Retrieves a paginated list of physical locations. Supports hierarchical filtering.")
     public PageResponse<Branch> list(
-            @RequestParam(required = false) Long stateId,
-            @RequestParam(required = false) Long municipalityId,
+            @Parameter(description = "Filter by state ID") @RequestParam(required = false) Long stateId,
+            @Parameter(description = "Filter by municipality ID") @RequestParam(required = false) Long municipalityId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize
     ) {

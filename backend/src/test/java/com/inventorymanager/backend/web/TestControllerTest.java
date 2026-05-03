@@ -44,6 +44,6 @@ class TestControllerTest {
         mockMvc.perform(get("/api/test/info"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.application_name").value("Inventory Manager Backend"))
-                .andExpect(jsonPath("$.version").value("1.0.0-SNAPSHOT"));
+                .andExpect(jsonPath("$.version").value("2.0.0"));
     }
 }
