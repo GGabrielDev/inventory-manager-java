@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.8.0...v1.8.1) (2026-05-04)
+
+
+### Bug Fixes
+
+* **ui:** Resolve lazy-init crashes and refine UI interactions ([#42](https://github.com/GGabrielDev/inventory-manager-java/issues/42)) ([f7ddc5c](https://github.com/GGabrielDev/inventory-manager-java/commit/f7ddc5c3d0cb0102ab3f9f3f24ea184e41893265))
+
 ## [1.8.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.7.1...v1.8.0) (2026-05-04)
 
 
