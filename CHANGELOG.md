@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.7.1...v1.8.0) (2026-05-04)
+
+
+### Features
+
+* **ui:** Complete form functionality and enhance table UX ([#40](https://github.com/GGabrielDev/inventory-manager-java/issues/40)) ([4a76955](https://github.com/GGabrielDev/inventory-manager-java/commit/4a7695532967391c916c68443fa40c8521d89966))
+
 ## [1.7.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.7.0...v1.7.1) (2026-05-03)
 
 
