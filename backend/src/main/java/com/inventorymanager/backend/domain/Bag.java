@@ -8,7 +8,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "bags")
-@JsonIgnoreProperties({"createdAt", "updatedAt"})
+@JsonIgnoreProperties({"createdAt", "updatedAt", "hibernateLazyInitializer", "handler"})
 public class Bag extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

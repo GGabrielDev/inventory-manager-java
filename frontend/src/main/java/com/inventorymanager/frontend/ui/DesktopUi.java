@@ -143,14 +143,14 @@ public class DesktopUi {
             sidebar.getChildren().add(new Separator());
             sidebar.getChildren().add(createNavGroupLabel(bundle.containsKey("nav.identity") ? bundle.getString("nav.identity") : "IDENTITY"));
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.users"), () -> showResourceView(bundle.getString("nav.users"), "users")));
-            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.roles") ? bundle.getString("nav.roles") : "🛡️ Roles", () -> showResourceView("Roles", "roles")));
-            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.permissions") ? bundle.getString("nav.permissions") : "🔑 Permissions", () -> showResourceView("Permissions", "permissions")));
+            sidebar.getChildren().add(createNavButton(bundle.getString("nav.roles"), () -> showResourceView("Roles", "roles")));
+            sidebar.getChildren().add(createNavButton(bundle.getString("nav.permissions"), () -> showResourceView("Permissions", "permissions")));
 
             sidebar.getChildren().add(new Separator());
             sidebar.getChildren().add(createNavGroupLabel(bundle.containsKey("nav.locations") ? bundle.getString("nav.locations") : "LOCATIONS"));
-            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.states") ? bundle.getString("nav.states") : "🗺️ States", () -> showResourceView("States", "states")));
-            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.municipalities") ? bundle.getString("nav.municipalities") : "🏘️ Municipalities", () -> showResourceView("Municipalities", "municipalities")));
-            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.parishes") ? bundle.getString("nav.parishes") : "📍 Parishes", () -> showResourceView("Parishes", "parishes")));
+            sidebar.getChildren().add(createNavButton(bundle.getString("nav.states"), () -> showResourceView("States", "states")));
+            sidebar.getChildren().add(createNavButton(bundle.getString("nav.municipalities"), () -> showResourceView("Municipalities", "municipalities")));
+            sidebar.getChildren().add(createNavButton(bundle.getString("nav.parishes"), () -> showResourceView("Parishes", "parishes")));
         }
         
         sidebar.getChildren().add(new Separator());
@@ -244,19 +244,6 @@ public class DesktopUi {
 
     private void showResourceView(String title, String resource) {
         VBox root = new VBox(15);
-        HBox filterBar = new HBox(10);
-        filterBar.setAlignment(Pos.CENTER_LEFT);
-        filterBar.setPadding(new Insets(10));
-        filterBar.setStyle("-fx-background-color: #f8f9fa; -fx-border-radius: 5;");
-        
-        ComboBox<IdName> stateFilter = new ComboBox<>();
-        stateFilter.setPromptText("State...");
-        ComboBox<IdName> branchFilter = new ComboBox<>();
-        branchFilter.setPromptText("Branch...");
-        Button applyFilter = new Button(bundle.getString("resource.apply"));
-        Button clearFilter = new Button(bundle.getString("resource.clear"));
-        
-        filterBar.getChildren().addAll(new Label(bundle.getString("resource.filter")), stateFilter, branchFilter, applyFilter, clearFilter);
         
         HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
@@ -272,6 +259,20 @@ public class DesktopUi {
 
         TableView<Map<String, Object>> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        
+        HBox filterBar = new HBox(10);
+        filterBar.setAlignment(Pos.CENTER_LEFT);
+        filterBar.setPadding(new Insets(10));
+        filterBar.setStyle("-fx-background-color: #f8f9fa; -fx-border-radius: 5;");
+        
+        ComboBox<IdName> stateFilter = new ComboBox<>();
+        stateFilter.setPromptText("State...");
+        ComboBox<IdName> branchFilter = new ComboBox<>();
+        branchFilter.setPromptText("Branch...");
+        Button applyFilter = new Button(bundle.getString("resource.apply"));
+        Button clearFilter = new Button(bundle.getString("resource.clear"));
+        
+        filterBar.getChildren().addAll(new Label(bundle.getString("resource.filter")), stateFilter, branchFilter, applyFilter, clearFilter);
         
         applyFilter.setOnAction(e -> loadFilteredData(table, title, resource, stateFilter.getValue(), branchFilter.getValue()));
         clearFilter.setOnAction(e -> {
@@ -310,38 +311,24 @@ public class DesktopUi {
         if (table.getColumns().isEmpty() && data != null && !data.isEmpty()) {
             Map<String, Object> first = data.get(0);
             for (String key : first.keySet()) {
+                if (key.equals("id")) continue; // Hidden ID
                 String headerText = bundle.containsKey("col." + key) ? bundle.getString("col." + key) : key.toUpperCase();
                 TableColumn<Map<String, Object>, String> col = new TableColumn<>(headerText);
                 col.setCellValueFactory(cellData -> {
-                    Object val = cellData.getValue().get(key);
-                    if (val instanceof Map) {
-                        val = ((Map<?, ?>) val).get("name");
-                    } else if (val instanceof List) {
-                        List<?> list = (List<?>) val;
-                        if (!list.isEmpty() && list.get(0) instanceof Map) {
-                            val = list.stream().map(m -> ((Map<?,?>)m).get("name").toString()).collect(Collectors.joining(", "));
-                        } else {
-                            val = list.stream().map(Object::toString).collect(Collectors.joining(", "));
-                        }
-                    }
+                    Object val = extractDeepValue(cellData.getValue().get(key));
                     return new javafx.beans.property.SimpleStringProperty(val == null ? "" : val.toString());
                 });
-                col.setCellFactory(tc -> {
-                    TableCell<Map<String, Object>, String> cell = new TableCell<>() {
-                        private final javafx.scene.text.Text text = new javafx.scene.text.Text();
-                        @Override
-                        protected void updateItem(String item, boolean empty) {
-                            super.updateItem(item, empty);
-                            if (empty || item == null) {
-                                setGraphic(null);
-                            } else {
-                                text.setText(item);
-                                text.wrappingWidthProperty().bind(tc.widthProperty().subtract(10));
-                                setGraphic(text);
-                            }
+                col.setCellFactory(tc -> new TableCell<>() {
+                    private final javafx.scene.text.Text text = new javafx.scene.text.Text();
+                    @Override protected void updateItem(String item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) { setGraphic(null); }
+                        else {
+                            text.setText(item);
+                            text.wrappingWidthProperty().bind(tc.widthProperty().subtract(10));
+                            setGraphic(text);
                         }
-                    };
-                    return cell;
+                    }
                 });
                 table.getColumns().add(col);
             }
@@ -372,6 +359,18 @@ public class DesktopUi {
         }
     }
 
+    private Object extractDeepValue(Object val) {
+        if (val instanceof Map) {
+            Map<?, ?> m = (Map<?, ?>) val;
+            if (m.containsKey("name")) return m.get("name");
+            if (m.containsKey("username")) return m.get("username");
+            return m.toString();
+        } else if (val instanceof List) {
+            return ((List<?>) val).stream().map(this::extractDeepValue).map(Object::toString).collect(Collectors.joining(", "));
+        }
+        return val;
+    }
+
     private void showGlobalAuditView() {
         VBox root = new VBox(15);
         Label title = new Label(bundle.getString("audit.title"));
@@ -382,20 +381,20 @@ public class DesktopUi {
         ));
         entityType.setPromptText(bundle.getString("audit.type"));
         TextField entityId = new TextField();
-        entityId.setPromptText(bundle.getString("audit.id"));
+        entityId.setPromptText(bundle.getString("audit.id") + " (Optional)");
         Button fetchBtn = new Button(bundle.getString("audit.fetch"));
         controls.getChildren().addAll(new Label(bundle.getString("audit.query")), entityType, entityId, fetchBtn);
         TableView<Map<String, Object>> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         fetchBtn.setOnAction(e -> {
-            if (entityType.getValue() == null || entityId.getText().isBlank()) {
-                String errMsg = bundle.containsKey("error.missing_audit_params") ? bundle.getString("error.missing_audit_params") : "Please select type and enter ID";
-                showWarningPopup("Input Error", errMsg);
+            if (entityType.getValue() == null) {
+                showWarningPopup("Input Error", "Please select entity type");
                 return;
             }
             try {
-                String path = "audit-logs/" + entityType.getValue() + "/" + entityId.getText();
+                String path = "audit-logs/" + entityType.getValue();
+                if (!entityId.getText().isBlank()) path += "/" + entityId.getText();
                 Map<String, Object> response = apiClient.get(path);
                 @SuppressWarnings("unchecked")
                 List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
@@ -472,11 +471,21 @@ public class DesktopUi {
                     Long branchId = ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue();
                     branches.stream().filter(b -> b.id.equals(branchId)).findFirst().ifPresent(branchCombo::setValue);
                 }
-                ObservableList<IdName> depts = fetchIdNames("departments");
-                deptCombo.setItems(depts);
+                branchCombo.setOnAction(e -> {
+                   try {
+                       if (branchCombo.getValue() != null) {
+                           deptCombo.setItems(fetchIdNames("departments?branchId=" + branchCombo.getValue().id));
+                       }
+                   } catch (Exception ignored) {}
+                });
+
                 if (isEdit && rowData.get("department") instanceof Map) {
                     Long deptId = ((Number) ((Map<?,?>)rowData.get("department")).get("id")).longValue();
+                    ObservableList<IdName> depts = fetchIdNames("departments?branchId=" + ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue());
+                    deptCombo.setItems(depts);
                     depts.stream().filter(d -> d.id.equals(deptId)).findFirst().ifPresent(deptCombo::setValue);
+                } else if (branchCombo.getValue() != null) {
+                    deptCombo.setItems(fetchIdNames("departments?branchId=" + branchCombo.getValue().id));
                 }
             } catch (Exception ignored) {}
         });
@@ -528,29 +537,30 @@ public class DesktopUi {
                 }
                 stateCombo.setOnAction(e -> {
                    try { 
-                       ObservableList<IdName> munis = fetchIdNames("municipalities");
-                       muniCombo.setItems(munis); 
+                       if (stateCombo.getValue() != null) {
+                           muniCombo.setItems(fetchIdNames("municipalities?stateId=" + stateCombo.getValue().id));
+                       }
                    } catch (Exception ignored) {}
                 });
                 muniCombo.setOnAction(e -> {
                    try { 
-                       ObservableList<IdName> parishes = fetchIdNames("parishes");
-                       parishCombo.setItems(parishes); 
+                       if (muniCombo.getValue() != null) {
+                           parishCombo.setItems(fetchIdNames("parishes?municipalityId=" + muniCombo.getValue().id));
+                       }
                    } catch (Exception ignored) {}
                 });
                 if (isEdit) {
-                    ObservableList<IdName> munis = fetchIdNames("municipalities");
+                    Long sId = ((Number) ((Map<?,?>)rowData.get("state")).get("id")).longValue();
+                    Long mId = ((Number) ((Map<?,?>)rowData.get("municipality")).get("id")).longValue();
+                    Long pId = ((Number) ((Map<?,?>)rowData.get("parish")).get("id")).longValue();
+                    
+                    ObservableList<IdName> munis = fetchIdNames("municipalities?stateId=" + sId);
                     muniCombo.setItems(munis);
-                    if (rowData.get("municipality") instanceof Map) {
-                        Long id = ((Number) ((Map<?,?>)rowData.get("municipality")).get("id")).longValue();
-                        munis.stream().filter(m -> m.id.equals(id)).findFirst().ifPresent(muniCombo::setValue);
-                    }
-                    ObservableList<IdName> parishes = fetchIdNames("parishes");
+                    munis.stream().filter(m -> m.id.equals(mId)).findFirst().ifPresent(muniCombo::setValue);
+                    
+                    ObservableList<IdName> parishes = fetchIdNames("parishes?municipalityId=" + mId);
                     parishCombo.setItems(parishes);
-                    if (rowData.get("parish") instanceof Map) {
-                        Long id = ((Number) ((Map<?,?>)rowData.get("parish")).get("id")).longValue();
-                        parishes.stream().filter(p -> p.id.equals(id)).findFirst().ifPresent(parishCombo::setValue);
-                    }
+                    parishes.stream().filter(p -> p.id.equals(pId)).findFirst().ifPresent(parishCombo::setValue);
                 }
             } catch (Exception ignored) {}
         });
@@ -779,11 +789,21 @@ public class DesktopUi {
                     Long id = ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue();
                     branches.stream().filter(b -> b.id.equals(id)).findFirst().ifPresent(branchCombo::setValue);
                 }
-                ObservableList<IdName> depts = fetchIdNames("departments");
-                deptCombo.setItems(depts);
+                branchCombo.setOnAction(e -> {
+                   try {
+                       if (branchCombo.getValue() != null) {
+                           deptCombo.setItems(fetchIdNames("departments?branchId=" + branchCombo.getValue().id));
+                       }
+                   } catch (Exception ignored) {}
+                });
+                
                 if (isEdit && rowData.get("assignedDepartment") instanceof Map) {
                     Long id = ((Number) ((Map<?,?>)rowData.get("assignedDepartment")).get("id")).longValue();
+                    ObservableList<IdName> depts = fetchIdNames("departments?branchId=" + ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue());
+                    deptCombo.setItems(depts);
                     depts.stream().filter(d -> d.id.equals(id)).findFirst().ifPresent(deptCombo::setValue);
+                } else if (branchCombo.getValue() != null) {
+                    deptCombo.setItems(fetchIdNames("departments?branchId=" + branchCombo.getValue().id));
                 }
             } catch (Exception ignored) {}
         });
@@ -857,7 +877,7 @@ public class DesktopUi {
     private ObservableList<IdName> fetchIdNames(String resource) throws Exception {
         return FXCollections.observableArrayList(
             apiClient.list(resource).stream()
-                .map(m -> new IdName(((Number) m.get("id")).longValue(), m.get("name").toString()))
+                .map(m -> new IdName(((Number) m.get("id")).longValue(), m.get("name") != null ? m.get("name").toString() : m.get("username").toString()))
                 .collect(Collectors.toList())
         );
     }
@@ -941,7 +961,7 @@ public class DesktopUi {
             this.apiClient = new ApiClient(urlField.getText());
             loadBundle();
             settingsStage.close();
-            showLogin();
+            showDashboardWrapper();
         });
         layout.getChildren().addAll(
             new Label(bundle.getString("settings.url")), urlField,
@@ -950,6 +970,10 @@ public class DesktopUi {
         );
         settingsStage.setScene(new Scene(layout));
         settingsStage.show();
+    }
+
+    private void showDashboardWrapper() {
+        try { showDashboard(); } catch (Exception ex) { showErrorPopup("UI Error", "Could not reload dashboard", ex); }
     }
 
     private void showWarningPopup(String title, String message) {

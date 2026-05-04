@@ -47,8 +47,10 @@ public class AuditService {
 
     public PageResponse auditTrail(String entityName, Long id, int page, int pageSize) {
         Class<?> entityClass = entityRegistry.resolve(entityName);
+        var queryBuilder = id == null ? QueryBuilder.byClass(entityClass) : QueryBuilder.byInstanceId(id, entityClass);
+        
         var snapshots = javers.findSnapshots(
-                QueryBuilder.byInstanceId(id, entityClass)
+                queryBuilder
                         .skip(page * pageSize)
                         .limit(pageSize)
                         .build()
