@@ -9,7 +9,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "branches")
-@JsonIgnoreProperties({"createdAt", "updatedAt"})
+@JsonIgnoreProperties({"createdAt", "updatedAt", "hibernateLazyInitializer", "handler", "departments"})
 public class Branch extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -85,6 +85,7 @@ public class Branch extends BaseEntity {
         this.parish = parish;
     }
 
+    @JsonIgnore
     public Set<Department> getDepartments() {
         return departments;
     }
