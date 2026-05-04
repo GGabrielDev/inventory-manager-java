@@ -3,7 +3,7 @@
 
     <groupId>com.inventorymanager</groupId>
     <artifactId>frontend</artifactId>
-    <version>1.7.1-SNAPSHOT</version>
+    <version>1.7.2-SNAPSHOT</version>
     <name>frontend</name>
 
     <properties>
