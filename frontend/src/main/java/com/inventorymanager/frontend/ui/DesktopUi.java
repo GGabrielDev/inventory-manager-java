@@ -141,16 +141,16 @@ public class DesktopUi {
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.departments"), () -> showResourceView(bundle.getString("nav.departments"), "departments")));
             
             sidebar.getChildren().add(new Separator());
-            sidebar.getChildren().add(createNavGroupLabel("IDENTITY"));
+            sidebar.getChildren().add(createNavGroupLabel(bundle.containsKey("nav.identity") ? bundle.getString("nav.identity") : "IDENTITY"));
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.users"), () -> showResourceView(bundle.getString("nav.users"), "users")));
-            sidebar.getChildren().add(createNavButton("🛡️ Roles", () -> showResourceView("Roles", "roles")));
-            sidebar.getChildren().add(createNavButton("🔑 Permissions", () -> showResourceView("Permissions", "permissions")));
+            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.roles") ? bundle.getString("nav.roles") : "🛡️ Roles", () -> showResourceView("Roles", "roles")));
+            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.permissions") ? bundle.getString("nav.permissions") : "🔑 Permissions", () -> showResourceView("Permissions", "permissions")));
 
             sidebar.getChildren().add(new Separator());
-            sidebar.getChildren().add(createNavGroupLabel("LOCATIONS"));
-            sidebar.getChildren().add(createNavButton("🗺️ States", () -> showResourceView("States", "states")));
-            sidebar.getChildren().add(createNavButton("🏘️ Municipalities", () -> showResourceView("Municipalities", "municipalities")));
-            sidebar.getChildren().add(createNavButton("📍 Parishes", () -> showResourceView("Parishes", "parishes")));
+            sidebar.getChildren().add(createNavGroupLabel(bundle.containsKey("nav.locations") ? bundle.getString("nav.locations") : "LOCATIONS"));
+            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.states") ? bundle.getString("nav.states") : "🗺️ States", () -> showResourceView("States", "states")));
+            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.municipalities") ? bundle.getString("nav.municipalities") : "🏘️ Municipalities", () -> showResourceView("Municipalities", "municipalities")));
+            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.parishes") ? bundle.getString("nav.parishes") : "📍 Parishes", () -> showResourceView("Parishes", "parishes")));
         }
         
         sidebar.getChildren().add(new Separator());
@@ -326,6 +326,23 @@ public class DesktopUi {
                     }
                     return new javafx.beans.property.SimpleStringProperty(val == null ? "" : val.toString());
                 });
+                col.setCellFactory(tc -> {
+                    TableCell<Map<String, Object>, String> cell = new TableCell<>() {
+                        private final javafx.scene.text.Text text = new javafx.scene.text.Text();
+                        @Override
+                        protected void updateItem(String item, boolean empty) {
+                            super.updateItem(item, empty);
+                            if (empty || item == null) {
+                                setGraphic(null);
+                            } else {
+                                text.setText(item);
+                                text.wrappingWidthProperty().bind(tc.widthProperty().subtract(10));
+                                setGraphic(text);
+                            }
+                        }
+                    };
+                    return cell;
+                });
                 table.getColumns().add(col);
             }
             if (title != null && resource != null) {
@@ -374,7 +391,7 @@ public class DesktopUi {
         fetchBtn.setOnAction(e -> {
             if (entityType.getValue() == null || entityId.getText().isBlank()) {
                 String errMsg = bundle.containsKey("error.missing_audit_params") ? bundle.getString("error.missing_audit_params") : "Please select type and enter ID";
-                showErrorPopup("Input Error", errMsg, new Exception("Missing audit parameters"));
+                showWarningPopup("Input Error", errMsg);
                 return;
             }
             try {
@@ -397,7 +414,9 @@ public class DesktopUi {
             case "branches" -> showBranchUpsertForm(rowData);
             case "departments" -> showDepartmentUpsertForm(rowData);
             case "users" -> showUserUpsertForm(rowData);
-            case "states", "municipalities", "parishes", "categories", "roles", "permissions" -> showNamedUpsertForm(title, resource, rowData);
+            case "municipalities" -> showMunicipalityUpsertForm(rowData);
+            case "parishes" -> showParishUpsertForm(rowData);
+            case "states", "categories", "roles", "permissions" -> showNamedUpsertForm(title, resource, rowData);
             default -> showPlaceholder("Form for " + title);
         }
     }
@@ -550,6 +569,82 @@ public class DesktopUi {
                     apiClient.create("branches", payload);
                 }
                 showResourceView(bundle.getString("nav.branches"), "branches");
+            } catch (Exception ex) { showErrorPopup("Save Error", "Failed", ex); }
+        });
+        root.getChildren().addAll(t, grid, saveBtn);
+        setView(root);
+    }
+
+    private void showMunicipalityUpsertForm(Map<String, Object> rowData) {
+        boolean isEdit = rowData != null;
+        VBox root = new VBox(20);
+        Label t = new Label(isEdit ? bundle.getString("form.edit") : bundle.getString("resource.add") + " Municipality");
+        t.setFont(Font.font("System", FontWeight.BOLD, 18));
+        GridPane grid = new GridPane(); grid.setHgap(10); grid.setVgap(10);
+        TextField nameField = new TextField(isEdit && rowData.get("name") != null ? rowData.get("name").toString() : "");
+        ComboBox<IdName> stateCombo = new ComboBox<>();
+        grid.addRow(0, new Label(bundle.getString("form.name")), nameField);
+        grid.addRow(1, new Label("State:"), stateCombo);
+        Platform.runLater(() -> {
+            try { 
+                ObservableList<IdName> states = fetchIdNames("states");
+                stateCombo.setItems(states); 
+                if (isEdit && rowData.get("state") instanceof Map) {
+                    Long id = ((Number) ((Map<?,?>)rowData.get("state")).get("id")).longValue();
+                    states.stream().filter(s -> s.id.equals(id)).findFirst().ifPresent(stateCombo::setValue);
+                }
+            } catch (Exception ignored) {}
+        });
+        Button saveBtn = new Button(bundle.getString("form.save"));
+        saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
+        saveBtn.setOnAction(e -> {
+            try {
+                if (stateCombo.getValue() == null) throw new IllegalArgumentException("State must be selected");
+                Map<String, Object> payload = Map.of("name", nameField.getText(), "stateId", stateCombo.getValue().id);
+                if (isEdit) {
+                    apiClient.update("municipalities", ((Number)rowData.get("id")).longValue(), payload);
+                } else {
+                    apiClient.create("municipalities", payload);
+                }
+                showResourceView("Municipalities", "municipalities");
+            } catch (Exception ex) { showErrorPopup("Save Error", "Failed", ex); }
+        });
+        root.getChildren().addAll(t, grid, saveBtn);
+        setView(root);
+    }
+
+    private void showParishUpsertForm(Map<String, Object> rowData) {
+        boolean isEdit = rowData != null;
+        VBox root = new VBox(20);
+        Label t = new Label(isEdit ? bundle.getString("form.edit") : bundle.getString("resource.add") + " Parish");
+        t.setFont(Font.font("System", FontWeight.BOLD, 18));
+        GridPane grid = new GridPane(); grid.setHgap(10); grid.setVgap(10);
+        TextField nameField = new TextField(isEdit && rowData.get("name") != null ? rowData.get("name").toString() : "");
+        ComboBox<IdName> muniCombo = new ComboBox<>();
+        grid.addRow(0, new Label(bundle.getString("form.name")), nameField);
+        grid.addRow(1, new Label("Municipality:"), muniCombo);
+        Platform.runLater(() -> {
+            try { 
+                ObservableList<IdName> munis = fetchIdNames("municipalities");
+                muniCombo.setItems(munis); 
+                if (isEdit && rowData.get("municipality") instanceof Map) {
+                    Long id = ((Number) ((Map<?,?>)rowData.get("municipality")).get("id")).longValue();
+                    munis.stream().filter(m -> m.id.equals(id)).findFirst().ifPresent(muniCombo::setValue);
+                }
+            } catch (Exception ignored) {}
+        });
+        Button saveBtn = new Button(bundle.getString("form.save"));
+        saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
+        saveBtn.setOnAction(e -> {
+            try {
+                if (muniCombo.getValue() == null) throw new IllegalArgumentException("Municipality must be selected");
+                Map<String, Object> payload = Map.of("name", nameField.getText(), "municipalityId", muniCombo.getValue().id);
+                if (isEdit) {
+                    apiClient.update("parishes", ((Number)rowData.get("id")).longValue(), payload);
+                } else {
+                    apiClient.create("parishes", payload);
+                }
+                showResourceView("Parishes", "parishes");
             } catch (Exception ex) { showErrorPopup("Save Error", "Failed", ex); }
         });
         root.getChildren().addAll(t, grid, saveBtn);
@@ -855,6 +950,15 @@ public class DesktopUi {
         );
         settingsStage.setScene(new Scene(layout));
         settingsStage.show();
+    }
+
+    private void showWarningPopup(String title, String message) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle(title);
+            alert.setHeaderText(message);
+            alert.showAndWait();
+        });
     }
 
     private void showErrorPopup(String title, String message, Exception ex) {

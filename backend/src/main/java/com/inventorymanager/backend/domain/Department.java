@@ -8,7 +8,7 @@ import jakarta.persistence.*;
 @Table(name = "departments", uniqueConstraints = {
         @UniqueConstraint(name = "departments_name_branch_unique", columnNames = {"name", "branch_id"})
 })
-@JsonIgnoreProperties({"createdAt", "updatedAt"})
+@JsonIgnoreProperties({"createdAt", "updatedAt", "hibernateLazyInitializer", "handler"})
 public class Department extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

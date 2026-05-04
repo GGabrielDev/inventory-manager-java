@@ -8,8 +8,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "states")
+@JsonIgnoreProperties({"createdAt", "updatedAt", "hibernateLazyInitializer", "handler"})
 public class State extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -9,6 +9,8 @@ import com.inventorymanager.backend.repository.BranchRepository;
 import com.inventorymanager.backend.repository.MunicipalityRepository;
 import com.inventorymanager.backend.repository.ParishRepository;
 import com.inventorymanager.backend.repository.StateRepository;
+import com.inventorymanager.backend.domain.Department;
+import com.inventorymanager.backend.repository.DepartmentRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,6 +28,7 @@ public class BranchController {
     private final StateRepository stateRepository;
     private final MunicipalityRepository municipalityRepository;
     private final ParishRepository parishRepository;
+    private final DepartmentRepository departmentRepository;
     private final CurrentUser currentUser;
     private final AuditService auditService;
 
@@ -34,6 +37,7 @@ public class BranchController {
             StateRepository stateRepository,
             MunicipalityRepository municipalityRepository,
             ParishRepository parishRepository,
+            DepartmentRepository departmentRepository,
             CurrentUser currentUser,
             AuditService auditService
     ) {
@@ -41,10 +45,10 @@ public class BranchController {
         this.stateRepository = stateRepository;
         this.municipalityRepository = municipalityRepository;
         this.parishRepository = parishRepository;
+        this.departmentRepository = departmentRepository;
         this.currentUser = currentUser;
         this.auditService = auditService;
     }
-
     @GetMapping
     @PreAuthorize("hasAuthority('get_branch')")
     @Operation(summary = "List all branches", description = "Retrieves a paginated list of physical locations. Supports hierarchical filtering.")
@@ -74,6 +78,18 @@ public class BranchController {
         mapRequestToEntity(request, entity);
         Branch saved = repository.save(entity);
         auditService.commitCreate(currentUser.id(), saved);
+
+        // Auto-create default departments
+        Department storage = new Department();
+        storage.setName("Storage");
+        storage.setBranch(saved);
+        departmentRepository.save(storage);
+
+        Department inbound = new Department();
+        inbound.setName("Inbound");
+        inbound.setBranch(saved);
+        departmentRepository.save(inbound);
+
         return saved;
     }
 

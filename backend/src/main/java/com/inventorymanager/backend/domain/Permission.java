@@ -15,7 +15,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "permissions")
-@JsonIgnoreProperties({"createdAt", "updatedAt"})
+@JsonIgnoreProperties({"createdAt", "updatedAt", "hibernateLazyInitializer", "handler"})
 public class Permission extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
