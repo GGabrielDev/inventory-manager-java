@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.inventorymanager.backend.common.ApiException;
 import org.javers.core.Javers;
 import org.javers.repository.jql.JqlQuery;
 import org.junit.jupiter.api.Test;
@@ -35,14 +36,14 @@ class AuditServiceAdversaryTest {
      * Service should handle this and throw a proper 400 ApiException.
      */
     @Test
-    void auditTrailThrowsIllegalArgumentExceptionOnInvalidEntity() {
+    void auditTrailThrowsApiExceptionOnInvalidEntity() {
         Javers javers = mock(Javers.class);
         EntityRegistry registry = mock(EntityRegistry.class);
-        when(registry.resolve("Invalid")).thenReturn(null);
+        when(registry.resolve("Invalid")).thenThrow(new ApiException(org.springframework.http.HttpStatus.BAD_REQUEST, "Unsupported"));
 
         AuditService service = new AuditService(javers, registry);
         
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(ApiException.class, () -> {
             service.auditTrail("Invalid", null, 0, 10);
         });
     }

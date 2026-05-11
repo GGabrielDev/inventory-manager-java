@@ -90,13 +90,17 @@ public class BagController {
                         Collectors.summingInt(bi -> bi.getExpectedQuantity() != null ? bi.getExpectedQuantity() : 0)
                 ));
 
-        // Group active displacements by itemId and count them
-        Map<Long, Long> displacedMap = activeDisplacements.stream()
+        // Group active displacements: count by itemId and collect first found name
+        Map<Long, Long> displacedMap = new HashMap<>();
+        Map<Long, String> displacedNames = new HashMap<>();
+        
+        activeDisplacements.stream()
                 .filter(d -> d != null && d.getItem() != null)
-                .collect(Collectors.groupingBy(
-                        d -> d.getItem().getId(),
-                        Collectors.counting()
-                ));
+                .forEach(d -> {
+                    Long itemId = d.getItem().getId();
+                    displacedMap.merge(itemId, 1L, Long::sum);
+                    displacedNames.putIfAbsent(itemId, d.getItem().getName() != null ? d.getItem().getName() : "Unknown Item");
+                });
 
         // Get all item IDs involved
         Set<Long> allItemIds = new HashSet<>(expectedMap.keySet());
@@ -116,13 +120,7 @@ public class BagController {
                             .map(bi -> bi.getItem().getName())
                             .filter(Objects::nonNull)
                             .findFirst()
-                            .orElseGet(() -> activeDisplacements.stream()
-                                    .filter(d -> d != null && d.getItem() != null && d.getItem().getId().equals(itemId))
-                                    .map(d -> d.getItem().getName())
-                                    .filter(Objects::nonNull)
-                                    .findFirst()
-                                    .orElse("Unknown Item")
-                            );
+                            .orElseGet(() -> displacedNames.getOrDefault(itemId, "Unknown Item"));
 
                     return new BagAuditItem(itemId, name, expected, displaced, remaining, anomalyCount);
                 }).collect(Collectors.toList());

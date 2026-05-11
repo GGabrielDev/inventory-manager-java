@@ -1,6 +1,7 @@
 package com.inventorymanager.backend.web;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.inventorymanager.backend.audit.AuditService;
@@ -47,21 +48,22 @@ class BagControllerAdversarialTest {
     }
 
     /**
-     * VIOLATION: Null Pointer Risk.
-     * If a Bag exists but getExpectedItems() returns null (e.g. uninitialized collection 
-     * in some state), the controller throws NPE.
+     * FIX: Null Pointer Risk.
+     * Bag with null expectedItems now returns empty list safely.
      */
     @Test
-    void auditThrowsNpeWhenExpectedItemsIsNull() throws Exception {
+    void auditHandlesNullExpectedItemsGracefully() throws Exception {
         Long bagId = 1L;
         Bag bag = new Bag();
         bag.setId(bagId);
         bag.setExpectedItems(null); // Force null
         
         Mockito.when(bagRepository.findById(bagId)).thenReturn(Optional.of(bag));
+        Mockito.when(displacementRepository.findActiveByBag(bagId)).thenReturn(java.util.Collections.emptyList());
 
         mockMvc.perform(get("/api/bags/1/audit"))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isEmpty());
     }
 
     /**

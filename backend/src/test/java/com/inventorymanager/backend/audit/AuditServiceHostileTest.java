@@ -46,10 +46,9 @@ class AuditServiceHostileTest {
         // Request page 1 with size 10. Assume there are 100 total records in DB.
         AuditService.PageResponse response = service.auditTrail("Item", 1L, 0, 10);
         
-        // If there are more than 10 records, 'total' should be > 10.
-        // Currently, it will return 10.
-        assertEquals(10, response.total(), "Total should be 10 as per current broken implementation");
-        assertEquals(1, response.totalPages(), "Total pages should be 1 as per current broken implementation");
+        // FIX: The implementation now returns -1 to avoid OOM when fetching all snapshots.
+        assertEquals(-1, response.total(), "Total should be -1 to indicate unknown large set");
+        assertEquals(-1, response.totalPages(), "Total pages should be -1 to indicate unknown large set");
         
         // HOSTILE ASSERTION: A proper implementation would need a separate count query or use Javers' way to get total count.
         // Since we can't easily fix it without changing the Service, we just PROVE it's limited.
