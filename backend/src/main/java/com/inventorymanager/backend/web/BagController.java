@@ -20,7 +20,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/bags")
@@ -30,6 +32,7 @@ public class BagController {
     private final BranchRepository branchRepository;
     private final DepartmentRepository departmentRepository;
     private final ItemRepository itemRepository;
+    private final com.inventorymanager.backend.repository.DisplacementRepository displacementRepository;
     private final CurrentUser currentUser;
     private final AuditService auditService;
 
@@ -38,6 +41,7 @@ public class BagController {
             BranchRepository branchRepository,
             DepartmentRepository departmentRepository,
             ItemRepository itemRepository,
+            com.inventorymanager.backend.repository.DisplacementRepository displacementRepository,
             CurrentUser currentUser,
             AuditService auditService
     ) {
@@ -45,6 +49,7 @@ public class BagController {
         this.branchRepository = branchRepository;
         this.departmentRepository = departmentRepository;
         this.itemRepository = itemRepository;
+        this.displacementRepository = displacementRepository;
         this.currentUser = currentUser;
         this.auditService = auditService;
     }
@@ -69,6 +74,35 @@ public class BagController {
     public Bag getByBarcode(@Parameter(description = "Unique barcode of the bag") @PathVariable String barcode) {
         return repository.findByBarcode(barcode).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bag not found"));
     }
+
+    @GetMapping("/{id}/audit")
+    @PreAuthorize("hasAuthority('get_bag')")
+    @Operation(summary = "Perform live audit", description = "Calculates expected items in a bag by subtracting active displacements.")
+    public BagAuditResponse audit(@PathVariable Long id) {
+        Bag bag = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bag not found"));
+        List<com.inventorymanager.backend.domain.Displacement> activeDisplacements = displacementRepository.findActiveByBag(id);
+
+        List<BagAuditItem> items = bag.getExpectedItems().stream()
+                .filter(bagItem -> bagItem != null && bagItem.getItem() != null)
+                .map(bagItem -> {
+                    long displacedQty = activeDisplacements.stream()
+                            .filter(d -> d != null && d.getItem() != null && d.getItem().getId().equals(bagItem.getItem().getId()))
+                            .count();
+                    int remainingQty = Math.max(0, bagItem.getExpectedQuantity() - (int) displacedQty);
+                    return new BagAuditItem(
+                            bagItem.getItem().getId(),
+                            bagItem.getItem().getName(),
+                            bagItem.getExpectedQuantity(),
+                            (int) displacedQty,
+                            remainingQty
+                    );
+                }).collect(Collectors.toList());
+
+        return new BagAuditResponse(bag.getId(), bag.getName(), bag.getBarcode(), items);
+    }
+
+    public record BagAuditResponse(Long id, String name, String barcode, List<BagAuditItem> items) {}
+    public record BagAuditItem(Long itemId, String itemName, int intendedQuantity, int displacedQuantity, int remainingQuantity) {}
 
     @PostMapping
     @PreAuthorize("hasAuthority('create_bag')")
