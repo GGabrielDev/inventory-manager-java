@@ -139,6 +139,7 @@ public class DesktopUi {
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.audit_logs"), this::showGlobalAuditView));
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.branches"), () -> showResourceView(bundle.getString("nav.branches"), "branches")));
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.departments"), () -> showResourceView(bundle.getString("nav.departments"), "departments")));
+            sidebar.getChildren().add(createNavButton(bundle.getString("nav.categories"), () -> showResourceView(bundle.getString("nav.categories"), "categories")));
             
             sidebar.getChildren().add(new Separator());
             sidebar.getChildren().add(createNavGroupLabel(bundle.containsKey("nav.identity") ? bundle.getString("nav.identity") : "IDENTITY"));
