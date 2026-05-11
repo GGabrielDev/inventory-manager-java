@@ -25,3 +25,9 @@
 
 - JavaFX UI currently uses JSON payload editors for fast CRUD parity and debugging.
 - JaVers changelog payload shape differs internally from Sequelize ChangeLog schema, but operation intent (`create/update/delete/link/unlink`) and actor/timestamp context are preserved.
+
+## Quality Assurance & Auditing
+
+- **Automated Pipeline:** The project uses a multi-stage AI auditing pipeline (Builder -> Adversary -> Auditor).
+- **Enforcement:** Validation is forced via Git `pre-commit` and `pre-push` hooks.
+- **Details:** See [AUDITING.md](AUDITING.md) for full architecture and setup instructions.

@@ -15,7 +15,6 @@ import com.inventorymanager.backend.repository.BranchRepository;
 import com.inventorymanager.backend.repository.DepartmentRepository;
 import com.inventorymanager.backend.repository.DisplacementRepository;
 import com.inventorymanager.backend.repository.ItemRepository;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -25,7 +24,7 @@ import org.mockito.Mockito;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-class BagControllerTest {
+class BagAuditHostileValidationTest {
 
     private MockMvc mockMvc;
     private BagRepository bagRepository;
@@ -39,57 +38,33 @@ class BagControllerTest {
         var deptRepo = Mockito.mock(DepartmentRepository.class);
         var itemRepo = Mockito.mock(ItemRepository.class);
         
-        // Use a real simple stub instead of Mockito to avoid Java 25 issues
         CurrentUser currentUser = new CurrentUser() {
             @Override public Long id() { return 1L; }
         };
         
-        // Dummy AuditService
-        AuditService auditService = new AuditService(null, null) {
-            @Override public void commitCreate(Long a, Object e) {}
-            @Override public void commitUpdate(Long a, Object e) {}
-            @Override public void commitDelete(Long a, Object e) {}
-        };
+        AuditService auditService = Mockito.mock(AuditService.class);
 
         BagController controller = new BagController(bagRepository, branchRepo, deptRepo, itemRepo, displacementRepository, currentUser, auditService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
+    /**
+     * PROOF: "Unexpected Items" are now detected.
+     * Items that are displaced but not in the bag's expected list should appear with intendedQuantity=0.
+     */
     @Test
-    void getByBarcodeReturnsBag() throws Exception {
-        Bag bag = new Bag();
-        bag.setId(1L);
-        bag.setName("Emergency Kit");
-        bag.setBarcode("K-99");
-
-        Mockito.when(bagRepository.findByBarcode("K-99")).thenReturn(Optional.of(bag));
-
-        mockMvc.perform(get("/api/bags/barcode/K-99"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Emergency Kit"))
-                .andExpect(jsonPath("$.barcode").value("K-99"));
-    }
-
-    @Test
-    void auditCalculatesRemainingQuantity() throws Exception {
+    void auditDetectsUnexpectedItems() throws Exception {
         Long bagId = 1L;
         Bag bag = new Bag();
         bag.setId(bagId);
-        bag.setName("Audit Bag");
+        bag.setExpectedItems(Set.of()); // Empty bag
         
-        Item item = new Item();
-        item.setId(10L);
-        item.setName("Drill");
-        
-        BagItem bagItem = new BagItem();
-        bagItem.setBag(bag);
-        bagItem.setItem(item);
-        bagItem.setExpectedQuantity(5);
-        
-        bag.setExpectedItems(Set.of(bagItem));
+        Item unexpectedItem = new Item();
+        unexpectedItem.setId(99L);
+        unexpectedItem.setName("Contraband");
         
         Displacement d = new Displacement();
-        d.setItem(item);
+        d.setItem(unexpectedItem);
         d.setBag(bag);
         
         Mockito.when(bagRepository.findById(bagId)).thenReturn(Optional.of(bag));
@@ -97,9 +72,47 @@ class BagControllerTest {
 
         mockMvc.perform(get("/api/bags/1/audit"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].itemName").value("Drill"))
-                .andExpect(jsonPath("$.items[0].intendedQuantity").value(5))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].itemId").value(99))
+                .andExpect(jsonPath("$.items[0].itemName").value("Contraband"))
+                .andExpect(jsonPath("$.items[0].intendedQuantity").value(0))
                 .andExpect(jsonPath("$.items[0].displacedQuantity").value(1))
-                .andExpect(jsonPath("$.items[0].remainingQuantity").value(4));
+                .andExpect(jsonPath("$.items[0].remainingQuantity").value(0));
+    }
+
+    /**
+     * VIOLATION: Masked Over-Displacement.
+     * If displaced > intended, remainingQuantity is clamped to 0.
+     * This masks anomalies where more items are removed than should exist.
+     */
+    @Test
+    void auditMasksNegativeInventory() throws Exception {
+        Long bagId = 1L;
+        Bag bag = new Bag();
+        bag.setId(bagId);
+        
+        Item item = new Item();
+        item.setId(10L);
+        item.setName("Water");
+        
+        BagItem bi = new BagItem();
+        bi.setItem(item);
+        bi.setExpectedQuantity(1);
+        bag.setExpectedItems(Set.of(bi));
+        
+        // 2 displacements for 1 expected item
+        Displacement d1 = new Displacement(); d1.setItem(item);
+        Displacement d2 = new Displacement(); d2.setItem(item);
+        
+        Mockito.when(bagRepository.findById(bagId)).thenReturn(Optional.of(bag));
+        Mockito.when(displacementRepository.findActiveByBag(bagId)).thenReturn(List.of(d1, d2));
+
+        mockMvc.perform(get("/api/bags/1/audit"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].displacedQuantity").value(2))
+                .andExpect(jsonPath("$.items[0].remainingQuantity").value(0));
+        
+        // Hostile note: remainingQuantity=0 is technically "correct" as in "none left", 
+        // but it doesn't shout "WE HAVE AN ERROR: 2 GONE BUT ONLY 1 EXPECTED".
     }
 }

@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.javers.core.metamodel.annotation.DiffIgnore;
+
 @Entity
 @Table(name = "branches")
 @JsonIgnoreProperties({"createdAt", "updatedAt", "hibernateLazyInitializer", "handler", "departments"})
@@ -35,6 +37,7 @@ public class Branch extends BaseEntity {
 
     @OneToMany(mappedBy = "branch")
     @JsonIgnore
+    @DiffIgnore
     private Set<Department> departments = new HashSet<>();
 
     public Long getId() {

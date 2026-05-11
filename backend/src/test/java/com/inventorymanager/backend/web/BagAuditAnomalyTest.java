@@ -15,7 +15,6 @@ import com.inventorymanager.backend.repository.BranchRepository;
 import com.inventorymanager.backend.repository.DepartmentRepository;
 import com.inventorymanager.backend.repository.DisplacementRepository;
 import com.inventorymanager.backend.repository.ItemRepository;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -25,7 +24,7 @@ import org.mockito.Mockito;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-class BagControllerTest {
+class BagAuditAnomalyTest {
 
     private MockMvc mockMvc;
     private BagRepository bagRepository;
@@ -39,67 +38,46 @@ class BagControllerTest {
         var deptRepo = Mockito.mock(DepartmentRepository.class);
         var itemRepo = Mockito.mock(ItemRepository.class);
         
-        // Use a real simple stub instead of Mockito to avoid Java 25 issues
         CurrentUser currentUser = new CurrentUser() {
             @Override public Long id() { return 1L; }
         };
         
-        // Dummy AuditService
-        AuditService auditService = new AuditService(null, null) {
-            @Override public void commitCreate(Long a, Object e) {}
-            @Override public void commitUpdate(Long a, Object e) {}
-            @Override public void commitDelete(Long a, Object e) {}
-        };
+        AuditService auditService = Mockito.mock(AuditService.class);
 
         BagController controller = new BagController(bagRepository, branchRepo, deptRepo, itemRepo, displacementRepository, currentUser, auditService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
+    /**
+     * ADVERSARIAL TEST: Verify anomalyCount detection.
+     * If 2 items are displaced but only 1 is expected, anomalyCount must be 1.
+     */
     @Test
-    void getByBarcodeReturnsBag() throws Exception {
-        Bag bag = new Bag();
-        bag.setId(1L);
-        bag.setName("Emergency Kit");
-        bag.setBarcode("K-99");
-
-        Mockito.when(bagRepository.findByBarcode("K-99")).thenReturn(Optional.of(bag));
-
-        mockMvc.perform(get("/api/bags/barcode/K-99"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Emergency Kit"))
-                .andExpect(jsonPath("$.barcode").value("K-99"));
-    }
-
-    @Test
-    void auditCalculatesRemainingQuantity() throws Exception {
+    void auditDetectsAnomalyCountOnOverDisplacement() throws Exception {
         Long bagId = 1L;
         Bag bag = new Bag();
         bag.setId(bagId);
-        bag.setName("Audit Bag");
         
         Item item = new Item();
         item.setId(10L);
-        item.setName("Drill");
+        item.setName("Water");
         
-        BagItem bagItem = new BagItem();
-        bagItem.setBag(bag);
-        bagItem.setItem(item);
-        bagItem.setExpectedQuantity(5);
+        BagItem bi = new BagItem();
+        bi.setItem(item);
+        bi.setExpectedQuantity(1);
+        bag.setExpectedItems(Set.of(bi));
         
-        bag.setExpectedItems(Set.of(bagItem));
-        
-        Displacement d = new Displacement();
-        d.setItem(item);
-        d.setBag(bag);
+        Displacement d1 = new Displacement(); d1.setItem(item);
+        Displacement d2 = new Displacement(); d2.setItem(item);
         
         Mockito.when(bagRepository.findById(bagId)).thenReturn(Optional.of(bag));
-        Mockito.when(displacementRepository.findActiveByBag(bagId)).thenReturn(List.of(d));
+        Mockito.when(displacementRepository.findActiveByBag(bagId)).thenReturn(List.of(d1, d2));
 
         mockMvc.perform(get("/api/bags/1/audit"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].itemName").value("Drill"))
-                .andExpect(jsonPath("$.items[0].intendedQuantity").value(5))
-                .andExpect(jsonPath("$.items[0].displacedQuantity").value(1))
-                .andExpect(jsonPath("$.items[0].remainingQuantity").value(4));
+                .andExpect(jsonPath("$.items[0].displacedQuantity").value(2))
+                .andExpect(jsonPath("$.items[0].intendedQuantity").value(1))
+                .andExpect(jsonPath("$.items[0].remainingQuantity").value(0))
+                .andExpect(jsonPath("$.items[0].anomalyCount").value(1));
     }
 }

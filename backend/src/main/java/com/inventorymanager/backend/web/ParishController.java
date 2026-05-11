@@ -36,8 +36,16 @@ public class ParishController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('get_parish')")
-    public PageResponse<Parish> list(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize) {
-        return PageUtil.from(repository.findAll(PageRequest.of(Math.max(0, page - 1), pageSize)));
+    public PageResponse<Parish> list(
+            @RequestParam(required = false) Long municipalityId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        org.springframework.data.jpa.domain.Specification<Parish> spec = (root, query, cb) -> {
+            if (municipalityId == null) return null;
+            return cb.equal(root.get("municipality").get("id"), municipalityId);
+        };
+        return PageUtil.from(repository.findAll(spec, PageRequest.of(Math.max(0, page - 1), pageSize)));
     }
 
     @GetMapping("/{id}")

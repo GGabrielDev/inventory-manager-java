@@ -12,11 +12,11 @@ public class AuditLogController {
         this.auditService = auditService;
     }
 
-    @GetMapping("/{entityName}/{id}")
+    @GetMapping({"/{entityName}", "/{entityName}/{id}"})
     @PreAuthorize("hasAuthority('get_audit_logs')")
     public AuditService.PageResponse getAuditTrail(
             @PathVariable String entityName,
-            @PathVariable Long id,
+            @PathVariable(required = false) Long id,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize
     ) {

@@ -36,8 +36,16 @@ public class MunicipalityController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('get_municipality')")
-    public PageResponse<Municipality> list(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize) {
-        return PageUtil.from(repository.findAll(PageRequest.of(Math.max(0, page - 1), pageSize)));
+    public PageResponse<Municipality> list(
+            @RequestParam(required = false) Long stateId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        org.springframework.data.jpa.domain.Specification<Municipality> spec = (root, query, cb) -> {
+            if (stateId == null) return null;
+            return cb.equal(root.get("state").get("id"), stateId);
+        };
+        return PageUtil.from(repository.findAll(spec, PageRequest.of(Math.max(0, page - 1), pageSize)));
     }
 
     @GetMapping("/{id}")
