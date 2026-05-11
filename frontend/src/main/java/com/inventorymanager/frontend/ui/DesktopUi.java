@@ -143,14 +143,14 @@ public class DesktopUi {
             sidebar.getChildren().add(new Separator());
             sidebar.getChildren().add(createNavGroupLabel(bundle.containsKey("nav.identity") ? bundle.getString("nav.identity") : "IDENTITY"));
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.users"), () -> showResourceView(bundle.getString("nav.users"), "users")));
-            sidebar.getChildren().add(createNavButton(bundle.getString("nav.roles"), () -> showResourceView("Roles", "roles")));
-            sidebar.getChildren().add(createNavButton(bundle.getString("nav.permissions"), () -> showResourceView("Permissions", "permissions")));
+            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.roles") ? bundle.getString("nav.roles") : "🛡️ Roles", () -> showResourceView("Roles", "roles")));
+            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.permissions") ? bundle.getString("nav.permissions") : "🔑 Permissions", () -> showResourceView("Permissions", "permissions")));
 
             sidebar.getChildren().add(new Separator());
             sidebar.getChildren().add(createNavGroupLabel(bundle.containsKey("nav.locations") ? bundle.getString("nav.locations") : "LOCATIONS"));
-            sidebar.getChildren().add(createNavButton(bundle.getString("nav.states"), () -> showResourceView("States", "states")));
-            sidebar.getChildren().add(createNavButton(bundle.getString("nav.municipalities"), () -> showResourceView("Municipalities", "municipalities")));
-            sidebar.getChildren().add(createNavButton(bundle.getString("nav.parishes"), () -> showResourceView("Parishes", "parishes")));
+            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.states") ? bundle.getString("nav.states") : "🗺️ States", () -> showResourceView("States", "states")));
+            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.municipalities") ? bundle.getString("nav.municipalities") : "🏘️ Municipalities", () -> showResourceView("Municipalities", "municipalities")));
+            sidebar.getChildren().add(createNavButton(bundle.containsKey("nav.parishes") ? bundle.getString("nav.parishes") : "📍 Parishes", () -> showResourceView("Parishes", "parishes")));
         }
         
         sidebar.getChildren().add(new Separator());
@@ -330,6 +330,23 @@ public class DesktopUi {
                         }
                     }
                 });
+                col.setCellFactory(tc -> {
+                    TableCell<Map<String, Object>, String> cell = new TableCell<>() {
+                        private final javafx.scene.text.Text text = new javafx.scene.text.Text();
+                        @Override
+                        protected void updateItem(String item, boolean empty) {
+                            super.updateItem(item, empty);
+                            if (empty || item == null) {
+                                setGraphic(null);
+                            } else {
+                                text.setText(item);
+                                text.wrappingWidthProperty().bind(tc.widthProperty().subtract(10));
+                                setGraphic(text);
+                            }
+                        }
+                    };
+                    return cell;
+                });
                 table.getColumns().add(col);
             }
             if (title != null && resource != null) {
@@ -388,8 +405,9 @@ public class DesktopUi {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         fetchBtn.setOnAction(e -> {
-            if (entityType.getValue() == null) {
-                showWarningPopup("Input Error", "Please select entity type");
+            if (entityType.getValue() == null || entityId.getText().isBlank()) {
+                String errMsg = bundle.containsKey("error.missing_audit_params") ? bundle.getString("error.missing_audit_params") : "Please select type and enter ID";
+                showWarningPopup("Input Error", errMsg);
                 return;
             }
             try {
