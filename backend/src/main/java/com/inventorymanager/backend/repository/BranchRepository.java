@@ -1,3 +1,5 @@
+package com.inventorymanager.backend.repository;
+
 import com.inventorymanager.backend.domain.Branch;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
