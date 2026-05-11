@@ -378,7 +378,6 @@ public class DesktopUi {
     }
 
     private Object extractDeepValue(Object val) {
-<<<<<<< HEAD
         if (val == null) return "";
         if (val instanceof Map) {
             Map<?, ?> m = (Map<?, ?>) val;
@@ -405,15 +404,6 @@ public class DesktopUi {
                     .map(Object::toString)
                     .filter(s -> !s.isBlank())
                     .collect(Collectors.joining(", "));
-=======
-        if (val instanceof Map) {
-            Map<?, ?> m = (Map<?, ?>) val;
-            if (m.containsKey("name")) return m.get("name");
-            if (m.containsKey("username")) return m.get("username");
-            return m.toString();
-        } else if (val instanceof List) {
-            return ((List<?>) val).stream().map(this::extractDeepValue).map(Object::toString).collect(Collectors.joining(", "));
->>>>>>> master
         }
         return val;
     }
@@ -435,14 +425,14 @@ public class DesktopUi {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         fetchBtn.setOnAction(e -> {
-            if (entityType.getValue() == null || entityId.getText().isBlank()) {
-                String errMsg = bundle.containsKey("error.missing_audit_params") ? bundle.getString("error.missing_audit_params") : "Please select type and enter ID";
+            if (entityType.getValue() == null) {
+                String errMsg = bundle.containsKey("error.missing_audit_params") ? bundle.getString("error.missing_audit_params") : "Please select type";
                 showWarningPopup("Input Error", errMsg);
                 return;
             }
             try {
                 String path = "audit-logs/" + entityType.getValue();
-                if (!entityId.getText().isBlank()) path += "/" + entityId.getText();
+                if (entityId.getText() != null && !entityId.getText().isBlank()) path += "/" + entityId.getText();
                 Map<String, Object> response = apiClient.get(path);
                 @SuppressWarnings("unchecked")
                 List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
