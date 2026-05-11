@@ -1,3 +1,5 @@
+package com.inventorymanager.backend.repository;
+
 import com.inventorymanager.backend.domain.Municipality;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

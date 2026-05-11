@@ -139,6 +139,7 @@ public class DesktopUi {
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.audit_logs"), this::showGlobalAuditView));
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.branches"), () -> showResourceView(bundle.getString("nav.branches"), "branches")));
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.departments"), () -> showResourceView(bundle.getString("nav.departments"), "departments")));
+            sidebar.getChildren().add(createNavButton(bundle.getString("nav.categories"), () -> showResourceView(bundle.getString("nav.categories"), "categories")));
             
             sidebar.getChildren().add(new Separator());
             sidebar.getChildren().add(createNavGroupLabel(bundle.containsKey("nav.identity") ? bundle.getString("nav.identity") : "IDENTITY"));
@@ -377,6 +378,7 @@ public class DesktopUi {
     }
 
     private Object extractDeepValue(Object val) {
+<<<<<<< HEAD
         if (val == null) return "";
         if (val instanceof Map) {
             Map<?, ?> m = (Map<?, ?>) val;
@@ -403,6 +405,15 @@ public class DesktopUi {
                     .map(Object::toString)
                     .filter(s -> !s.isBlank())
                     .collect(Collectors.joining(", "));
+=======
+        if (val instanceof Map) {
+            Map<?, ?> m = (Map<?, ?>) val;
+            if (m.containsKey("name")) return m.get("name");
+            if (m.containsKey("username")) return m.get("username");
+            return m.toString();
+        } else if (val instanceof List) {
+            return ((List<?>) val).stream().map(this::extractDeepValue).map(Object::toString).collect(Collectors.joining(", "));
+>>>>>>> master
         }
         return val;
     }

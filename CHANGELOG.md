@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.2](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.8.1...v1.8.2) (2026-05-11)
+
+
+### Bug Fixes
+
+* **mcp:** Resolve server startup and architectural audit violations ([#44](https://github.com/GGabrielDev/inventory-manager-java/issues/44)) ([5319ac4](https://github.com/GGabrielDev/inventory-manager-java/commit/5319ac42ba8507ba59880a2f86cf7992c21c0bc5))
+
 ## [1.8.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.8.0...v1.8.1) (2026-05-04)
 
 
