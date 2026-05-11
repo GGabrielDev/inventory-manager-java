@@ -18,6 +18,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -73,6 +74,7 @@ public class BranchController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('create_branch')")
+    @Transactional
     public Branch create(@Valid @RequestBody CrudRequest.BranchUpsert request) {
         Branch entity = new Branch();
         mapRequestToEntity(request, entity);
@@ -83,18 +85,21 @@ public class BranchController {
         Department storage = new Department();
         storage.setName("Storage");
         storage.setBranch(saved);
-        departmentRepository.save(storage);
+        Department savedStorage = departmentRepository.save(storage);
+        auditService.commitCreate(currentUser.id(), savedStorage);
 
         Department inbound = new Department();
         inbound.setName("Inbound");
         inbound.setBranch(saved);
-        departmentRepository.save(inbound);
+        Department savedInbound = departmentRepository.save(inbound);
+        auditService.commitCreate(currentUser.id(), savedInbound);
 
         return saved;
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('edit_branch')")
+    @Transactional
     public Branch update(@PathVariable Long id, @Valid @RequestBody CrudRequest.BranchUpsert request) {
         Branch entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Branch not found"));
         mapRequestToEntity(request, entity);
@@ -105,6 +110,7 @@ public class BranchController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_branch')")
+    @Transactional
     public void delete(@PathVariable Long id) {
         Branch entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Branch not found"));
         repository.delete(entity);

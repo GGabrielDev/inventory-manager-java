@@ -17,7 +17,7 @@ public class AuditController {
     }
 
     @GetMapping("/{entity}/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('get_audit_logs')")
     public AuditService.PageResponse byEntity(
             @PathVariable String entity,
             @PathVariable Long id,

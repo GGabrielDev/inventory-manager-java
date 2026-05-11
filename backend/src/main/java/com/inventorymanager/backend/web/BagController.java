@@ -19,9 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -80,29 +78,60 @@ public class BagController {
     @Operation(summary = "Perform live audit", description = "Calculates expected items in a bag by subtracting active displacements.")
     public BagAuditResponse audit(@PathVariable Long id) {
         Bag bag = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bag not found"));
-        List<com.inventorymanager.backend.domain.Displacement> activeDisplacements = displacementRepository.findActiveByBag(id);
+        List<com.inventorymanager.backend.domain.Displacement> activeDisplacements = Optional.ofNullable(displacementRepository.findActiveByBag(id))
+                .orElse(Collections.emptyList());
 
-        List<BagAuditItem> items = bag.getExpectedItems().stream()
-                .filter(bagItem -> bagItem != null && bagItem.getItem() != null)
-                .map(bagItem -> {
-                    long displacedQty = activeDisplacements.stream()
-                            .filter(d -> d != null && d.getItem() != null && d.getItem().getId().equals(bagItem.getItem().getId()))
-                            .count();
-                    int remainingQty = Math.max(0, bagItem.getExpectedQuantity() - (int) displacedQty);
-                    return new BagAuditItem(
-                            bagItem.getItem().getId(),
-                            bagItem.getItem().getName(),
-                            bagItem.getExpectedQuantity(),
-                            (int) displacedQty,
-                            remainingQty
-                    );
+        // Group expected items by itemId and sum quantities
+        Map<Long, Integer> expectedMap = Optional.ofNullable(bag.getExpectedItems())
+                .orElse(Collections.emptySet()).stream()
+                .filter(bi -> bi != null && bi.getItem() != null)
+                .collect(Collectors.groupingBy(
+                        bi -> bi.getItem().getId(),
+                        Collectors.summingInt(bi -> bi.getExpectedQuantity() != null ? bi.getExpectedQuantity() : 0)
+                ));
+
+        // Group active displacements by itemId and count them
+        Map<Long, Long> displacedMap = activeDisplacements.stream()
+                .filter(d -> d != null && d.getItem() != null)
+                .collect(Collectors.groupingBy(
+                        d -> d.getItem().getId(),
+                        Collectors.counting()
+                ));
+
+        // Get all item IDs involved
+        Set<Long> allItemIds = new HashSet<>(expectedMap.keySet());
+        allItemIds.addAll(displacedMap.keySet());
+
+        List<BagAuditItem> items = allItemIds.stream()
+                .map(itemId -> {
+                    int expected = expectedMap.getOrDefault(itemId, 0);
+                    long displacedLong = displacedMap.getOrDefault(itemId, 0L);
+                    int displaced = (int) Math.min(Integer.MAX_VALUE, displacedLong);
+                    int remaining = Math.max(0, expected - displaced);
+                    int anomalyCount = Math.max(0, displaced - expected);
+
+                    // Find item name
+                    String name = Optional.ofNullable(bag.getExpectedItems()).orElse(Collections.emptySet()).stream()
+                            .filter(bi -> bi != null && bi.getItem() != null && bi.getItem().getId().equals(itemId))
+                            .map(bi -> bi.getItem().getName())
+                            .filter(Objects::nonNull)
+                            .findFirst()
+                            .orElseGet(() -> activeDisplacements.stream()
+                                    .filter(d -> d != null && d.getItem() != null && d.getItem().getId().equals(itemId))
+                                    .map(d -> d.getItem().getName())
+                                    .filter(Objects::nonNull)
+                                    .findFirst()
+                                    .orElse("Unknown Item")
+                            );
+
+                    return new BagAuditItem(itemId, name, expected, displaced, remaining, anomalyCount);
                 }).collect(Collectors.toList());
 
         return new BagAuditResponse(bag.getId(), bag.getName(), bag.getBarcode(), items);
     }
 
     public record BagAuditResponse(Long id, String name, String barcode, List<BagAuditItem> items) {}
-    public record BagAuditItem(Long itemId, String itemName, int intendedQuantity, int displacedQuantity, int remainingQuantity) {}
+    public record BagAuditItem(Long itemId, String itemName, int intendedQuantity, int displacedQuantity, int remainingQuantity, int anomalyCount) {}
 
     @PostMapping
     @PreAuthorize("hasAuthority('create_bag')")
