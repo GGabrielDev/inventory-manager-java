@@ -22,8 +22,8 @@ chmod +x tools/hooks/pre-push
 
 # 3. Register MCP Server with Gemini CLI
 # Note: This assumes 'gemini' is in the PATH.
-echo "🤖 Registering MCP Server with Gemini CLI..."
-gemini mcp add inventory-manager-auditor "node $MCP_SERVER_PATH" --allowed-tools verify_rbac_boundary,analyze_test_gaps,audit_javers_compliance,check_ui_style
+echo \"🤖 Registering MCP Server with Gemini CLI...\"
+gemini mcp add inventory-manager-auditor node $MCP_SERVER_PATH --include-tools verify_rbac_boundary,analyze_test_gaps,audit_javers_compliance,check_ui_style
 
 echo "✅ Pipeline setup complete."
 echo ""
