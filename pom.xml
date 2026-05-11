@@ -3,7 +3,7 @@
 
     <groupId>com.inventorymanager</groupId>
     <artifactId>inventory-manager-java</artifactId>
-    <version>1.8.1-SNAPSHOT</version>
+    <version>1.8.3-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>inventory-manager-java</name>
 
