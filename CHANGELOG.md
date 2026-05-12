@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.3](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.8.2...v1.8.3) (2026-05-12)
+
+
+### Bug Fixes
+
+* **ui:** Finalize data rendering and expand sidebar ([#47](https://github.com/GGabrielDev/inventory-manager-java/issues/47)) ([b937019](https://github.com/GGabrielDev/inventory-manager-java/commit/b9370193bd6ad52f9aa58ffa8e6c5e8d9cd47d65))
+* **ui:** Resolve missing table data for nested associations ([#46](https://github.com/GGabrielDev/inventory-manager-java/issues/46)) ([20709f9](https://github.com/GGabrielDev/inventory-manager-java/commit/20709f973700f3e3c7d9d27a2350d5c2bb45e0f7))
+
 ## [1.8.2](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.8.1...v1.8.2) (2026-05-11)
 
 
