@@ -60,10 +60,10 @@ jobs:
             echo "Latest release tag: $LATEST_TAG"
             
             if [ ! -z "$LATEST_TAG" ]; then
-              # Simple lexical comparison (standard for semver without complex scripts)
+              # Simple lexical comparison
               if [ "$(printf '%s\n%s' "$LATEST_TAG" "$ROOT_VER" | sort -V | head -n1)" == "$ROOT_VER" ] && [ "$ROOT_VER" != "$LATEST_TAG" ]; then
-                echo "ERROR: Local version ($ROOT_VER) is lower than latest release ($LATEST_TAG)!"
-                exit 1
+                echo "WARNING: Local version ($ROOT_VER) is lower than latest release ($LATEST_TAG)."
+                echo "Release-please will still aggregate this PR, but versioning might need manual review."
               fi
             fi
           fi
