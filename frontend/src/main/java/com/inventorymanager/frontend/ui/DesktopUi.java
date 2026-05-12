@@ -139,6 +139,7 @@ public class DesktopUi {
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.audit_logs"), this::showGlobalAuditView));
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.branches"), () -> showResourceView(bundle.getString("nav.branches"), "branches")));
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.departments"), () -> showResourceView(bundle.getString("nav.departments"), "departments")));
+            sidebar.getChildren().add(createNavButton(bundle.getString("nav.categories"), () -> showResourceView(bundle.getString("nav.categories"), "categories")));
             
             sidebar.getChildren().add(new Separator());
             sidebar.getChildren().add(createNavGroupLabel(bundle.containsKey("nav.identity") ? bundle.getString("nav.identity") : "IDENTITY"));
@@ -377,13 +378,32 @@ public class DesktopUi {
     }
 
     private Object extractDeepValue(Object val) {
+        if (val == null) return "";
         if (val instanceof Map) {
             Map<?, ?> m = (Map<?, ?>) val;
-            if (m.containsKey("name")) return m.get("name");
-            if (m.containsKey("username")) return m.get("username");
+            String[] preferredKeys = {"name", "username", "title", "barcode", "requestedItemName", "borrowerName"};
+            for (String key : preferredKeys) {
+                if (m.containsKey(key) && m.get(key) != null) return m.get(key);
+            }
+            
+            // Fallback: search one level deeper if no primary key found
+            for (Object subVal : m.values()) {
+                if (subVal instanceof Map) {
+                    Object deep = extractDeepValue(subVal);
+                    if (deep != null && !deep.toString().startsWith("{") && !deep.toString().isBlank()) {
+                        return deep;
+                    }
+                }
+            }
+            
+            if (m.containsKey("id")) return "#" + m.get("id");
             return m.toString();
         } else if (val instanceof List) {
-            return ((List<?>) val).stream().map(this::extractDeepValue).map(Object::toString).collect(Collectors.joining(", "));
+            return ((List<?>) val).stream()
+                    .map(this::extractDeepValue)
+                    .map(Object::toString)
+                    .filter(s -> !s.isBlank())
+                    .collect(Collectors.joining(", "));
         }
         return val;
     }
@@ -405,14 +425,14 @@ public class DesktopUi {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         fetchBtn.setOnAction(e -> {
-            if (entityType.getValue() == null || entityId.getText().isBlank()) {
-                String errMsg = bundle.containsKey("error.missing_audit_params") ? bundle.getString("error.missing_audit_params") : "Please select type and enter ID";
+            if (entityType.getValue() == null) {
+                String errMsg = bundle.containsKey("error.missing_audit_params") ? bundle.getString("error.missing_audit_params") : "Please select type";
                 showWarningPopup("Input Error", errMsg);
                 return;
             }
             try {
                 String path = "audit-logs/" + entityType.getValue();
-                if (!entityId.getText().isBlank()) path += "/" + entityId.getText();
+                if (entityId.getText() != null && !entityId.getText().isBlank()) path += "/" + entityId.getText();
                 Map<String, Object> response = apiClient.get(path);
                 @SuppressWarnings("unchecked")
                 List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");

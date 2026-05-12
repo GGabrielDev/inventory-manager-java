@@ -23,7 +23,8 @@ public class EntityRegistry {
             Map.entry("branch", Branch.class),
             Map.entry("bag", Bag.class),
             Map.entry("bag_item", BagItem.class),
-            Map.entry("displacement", Displacement.class)
+            Map.entry("displacement", Displacement.class),
+            Map.entry("item_request_entry", ItemRequestEntry.class)
     );
 
     public Class<?> resolve(String entityName) {
