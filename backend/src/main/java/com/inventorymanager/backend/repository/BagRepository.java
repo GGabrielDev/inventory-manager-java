@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface BagRepository extends JpaRepository<Bag, Long> {
+    @EntityGraph(attributePaths = {"branch", "assignedDepartment", "expectedItems", "expectedItems.item"})
     Optional<Bag> findByBarcode(String barcode);
 
     @Override
