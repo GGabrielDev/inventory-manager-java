@@ -71,7 +71,7 @@ class ItemRequestWorkflowServiceTest {
 
         when(requestRepository.findById(1L)).thenReturn(Optional.of(request));
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(departmentRepository.findAll()).thenReturn(List.of(inboundDept));
+        when(departmentRepository.findByNameAndBranch_Id("Inbound", branch.getId())).thenReturn(Optional.of(inboundDept));
         when(itemRepository.save(any(Item.class))).thenAnswer(i -> i.getArgument(0));
         when(requestRepository.save(any(ItemRequest.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -117,7 +117,7 @@ class ItemRequestWorkflowServiceTest {
 
         when(requestRepository.findById(1L)).thenReturn(Optional.of(request));
         when(userRepository.findById(1L)).thenReturn(Optional.of(actor));
-        when(departmentRepository.findAll()).thenReturn(List.of(targetInbound));
+        when(departmentRepository.findByNameAndBranch_Id("Inbound", targetBranch.getId())).thenReturn(Optional.of(targetInbound));
         when(itemRepository.save(any(Item.class))).thenAnswer(i -> i.getArgument(0));
         when(requestRepository.save(any(ItemRequest.class))).thenAnswer(i -> i.getArgument(0));
 

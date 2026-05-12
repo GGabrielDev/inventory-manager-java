@@ -115,10 +115,7 @@ public class ItemRequestWorkflowService {
         Department targetDept = entry.getTargetDepartment();
         if (targetDept == null) {
             // Default to "Inbound" department of target branch
-            final Long branchId = targetBranch.getId();
-            targetDept = departmentRepository.findAll().stream()
-                    .filter(d -> d.getName().equals("Inbound") && d.getBranch().getId().equals(branchId))
-                    .findFirst()
+            targetDept = departmentRepository.findByNameAndBranch_Id("Inbound", targetBranch.getId())
                     .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Inbound department not found in target branch"));
         }
 
@@ -172,10 +169,7 @@ public class ItemRequestWorkflowService {
             // INTER-BRANCH TRANSFER
             item.setBranch(targetBranch);
             // Default to Inbound department of target branch
-            final Long branchId = targetBranch.getId();
-            targetDept = departmentRepository.findAll().stream()
-                    .filter(d -> d.getName().equals("Inbound") && d.getBranch().getId().equals(branchId))
-                    .findFirst()
+            targetDept = departmentRepository.findByNameAndBranch_Id("Inbound", targetBranch.getId())
                     .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Inbound department not found in target branch"));
             item.setDepartment(targetDept);
         } else if (targetDept != null) {
@@ -187,6 +181,10 @@ public class ItemRequestWorkflowService {
 
         Item saved = itemRepository.save(item);
         auditService.commitUpdate(actorUserId, saved);
+
+        // Audit relationship changes specifically
+        auditService.commitLink(actorUserId, "item_department", saved.getId(), saved.getDepartment().getId());
+        auditService.commitLink(actorUserId, "item_branch", saved.getId(), saved.getBranch().getId());
     }
 
     private void executeDisincorporation(ItemRequestEntry entry, Long actorUserId) {

@@ -302,13 +302,13 @@ public class DesktopUi {
             if (state != null) path += "&stateId=" + state.id;
             if (branch != null) path += "&branchId=" + branch.id;
             List<Map<String, Object>> data = apiClient.list(path);
-            updateTableColumns(table, data, title, resource);
+            updateTableColumns(table, data, title, resource, () -> loadFilteredData(table, title, resource, state, branch));
         } catch (Exception e) {
             showErrorPopup("Fetch Error", "Could not load data", e);
         }
     }
 
-    private void updateTableColumns(TableView<Map<String, Object>> table, List<Map<String, Object>> data, String title, String resource) {
+    private void updateTableColumns(TableView<Map<String, Object>> table, List<Map<String, Object>> data, String title, String resource, Runnable onRefresh) {
         if (table.getColumns().isEmpty() && data != null && !data.isEmpty()) {
             Map<String, Object> first = data.get(0);
             for (String key : first.keySet()) {
@@ -331,40 +331,38 @@ public class DesktopUi {
                         }
                     }
                 });
-                col.setCellFactory(tc -> {
-                    TableCell<Map<String, Object>, String> cell = new TableCell<>() {
-                        private final javafx.scene.text.Text text = new javafx.scene.text.Text();
-                        @Override
-                        protected void updateItem(String item, boolean empty) {
-                            super.updateItem(item, empty);
-                            if (empty || item == null) {
-                                setGraphic(null);
-                            } else {
-                                text.setText(item);
-                                text.wrappingWidthProperty().bind(tc.widthProperty().subtract(10));
-                                setGraphic(text);
-                            }
-                        }
-                    };
-                    return cell;
-                });
                 table.getColumns().add(col);
             }
             if (title != null && resource != null) {
                 String actionText = bundle.containsKey("table.actions") ? bundle.getString("table.actions") : "ACTIONS";
                 TableColumn<Map<String, Object>, Void> actionCol = new TableColumn<>(actionText);
+                actionCol.setPrefWidth(120);
                 actionCol.setCellFactory(param -> new TableCell<>() {
                     private final Button editBtn = new Button(bundle.containsKey("btn.edit") ? bundle.getString("btn.edit") : "Edit");
+                    private final Button deleteBtn = new Button(bundle.containsKey("btn.delete") ? bundle.getString("btn.delete") : "Delete");
                     {
-                        editBtn.setStyle("-fx-font-size: 10px;");
+                        editBtn.setStyle("-fx-font-size: 10px; -fx-background-color: #3498db; -fx-text-fill: white;");
+                        deleteBtn.setStyle("-fx-font-size: 10px; -fx-background-color: #e74c3c; -fx-text-fill: white;");
+                        
                         editBtn.setOnAction(event -> {
                             Map<String, Object> rowData = getTableView().getItems().get(getIndex());
                             showUpsertForm(title, resource, rowData);
                         });
+                        
+                        deleteBtn.setOnAction(event -> {
+                            Map<String, Object> rowData = getTableView().getItems().get(getIndex());
+                            showDeleteConfirmation(title, resource, rowData, onRefresh);
+                        });
                     }
                     @Override protected void updateItem(Void item, boolean empty) {
                         super.updateItem(item, empty);
-                        setGraphic(empty ? null : editBtn);
+                        if (empty) {
+                            setGraphic(null);
+                        } else {
+                            HBox box = new HBox(5, editBtn, deleteBtn);
+                            box.setAlignment(Pos.CENTER);
+                            setGraphic(box);
+                        }
                     }
                 });
                 table.getColumns().add(actionCol);
@@ -378,13 +376,32 @@ public class DesktopUi {
     }
 
     private Object extractDeepValue(Object val) {
+        if (val == null) return "";
         if (val instanceof Map) {
             Map<?, ?> m = (Map<?, ?>) val;
-            if (m.containsKey("name")) return m.get("name");
-            if (m.containsKey("username")) return m.get("username");
+            String[] preferredKeys = {"name", "username", "title", "barcode", "requestedItemName", "borrowerName"};
+            for (String key : preferredKeys) {
+                if (m.containsKey(key) && m.get(key) != null) return m.get(key);
+            }
+            
+            // Fallback: search one level deeper if no primary key found
+            for (Object subVal : m.values()) {
+                if (subVal instanceof Map) {
+                    Object deep = extractDeepValue(subVal);
+                    if (deep != null && !deep.toString().startsWith("{") && !deep.toString().isBlank()) {
+                        return deep;
+                    }
+                }
+            }
+            
+            if (m.containsKey("id")) return "#" + m.get("id");
             return m.toString();
         } else if (val instanceof List) {
-            return ((List<?>) val).stream().map(this::extractDeepValue).map(Object::toString).collect(Collectors.joining(", "));
+            return ((List<?>) val).stream()
+                    .map(this::extractDeepValue)
+                    .map(Object::toString)
+                    .filter(s -> !s.isBlank())
+                    .collect(Collectors.joining(", "));
         }
         return val;
     }
@@ -406,18 +423,41 @@ public class DesktopUi {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         fetchBtn.setOnAction(e -> {
-            if (entityType.getValue() == null || entityId.getText().isBlank()) {
-                String errMsg = bundle.containsKey("error.missing_audit_params") ? bundle.getString("error.missing_audit_params") : "Please select type and enter ID";
+            if (entityType.getValue() == null) {
+                String errMsg = bundle.containsKey("error.missing_audit_params") ? bundle.getString("error.missing_audit_params") : "Please select type";
                 showWarningPopup("Input Error", errMsg);
                 return;
             }
             try {
                 String path = "audit-logs/" + entityType.getValue();
-                if (!entityId.getText().isBlank()) path += "/" + entityId.getText();
+                if (entityId.getText() != null && !entityId.getText().isBlank()) path += "/" + entityId.getText();
                 Map<String, Object> response = apiClient.get(path);
                 @SuppressWarnings("unchecked")
                 List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
-                updateTableColumns(table, data, null, null);
+                updateTableColumns(table, data, null, null, () -> fetchBtn.fire());
+                
+                // Customize 'STATE' column if it exists to show full JSON
+                table.getColumns().stream()
+                    .filter(c -> c.getText().equals("STATE"))
+                    .findFirst()
+                    .ifPresent(col -> {
+                        @SuppressWarnings("unchecked")
+                        TableColumn<Map<String, Object>, String> stateCol = (TableColumn<Map<String, Object>, String>) col;
+                        stateCol.setCellFactory(tc -> new TableCell<>() {
+                            @Override protected void updateItem(String item, boolean empty) {
+                                super.updateItem(item, empty);
+                                if (empty || item == null) { setGraphic(null); }
+                                else {
+                                    Map<String, Object> row = getTableView().getItems().get(getIndex());
+                                    Object stateObj = row.get("state");
+                                    Label label = new Label(stateObj != null ? stateObj.toString() : "");
+                                    label.setWrapText(true);
+                                    label.setMaxWidth(400);
+                                    setGraphic(label);
+                                }
+                            }
+                        });
+                    });
             } catch (Exception ex) { showErrorPopup(bundle.getString("audit.error"), "Failed to fetch logs", ex); }
         });
         root.getChildren().addAll(title, controls, table);
@@ -848,15 +888,26 @@ public class DesktopUi {
     }
 
     private void showDisplacementUpsertForm(Map<String, Object> rowData) {
+        showDisplacementUpsertForm(rowData, null);
+    }
+
+    private void showDisplacementUpsertForm(Map<String, Object> rowData, Map<String, Object> prefill) {
         boolean isEdit = rowData != null;
         VBox root = new VBox(20);
         Label t = new Label(isEdit ? bundle.getString("form.edit") : bundle.getString("nav.displacements"));
         t.setFont(Font.font("System", FontWeight.BOLD, 18));
         GridPane grid = new GridPane(); grid.setHgap(10); grid.setVgap(10);
         ComboBox<IdName> itemCombo = new ComboBox<>();
-        TextField borrowerField = new TextField(isEdit && rowData.get("borrowerName") != null ? rowData.get("borrowerName").toString() : "");
-        TextArea reasonArea = new TextArea(isEdit && rowData.get("reason") != null ? rowData.get("reason").toString() : ""); 
+        
+        String initialBorrower = isEdit && rowData.get("borrowerName") != null ? rowData.get("borrowerName").toString() : "";
+        if (!isEdit && prefill != null && prefill.containsKey("borrowerName")) initialBorrower = prefill.get("borrowerName").toString();
+        TextField borrowerField = new TextField(initialBorrower);
+        
+        String initialReason = isEdit && rowData.get("reason") != null ? rowData.get("reason").toString() : "";
+        if (!isEdit && prefill != null && prefill.containsKey("reason")) initialReason = prefill.get("reason").toString();
+        TextArea reasonArea = new TextArea(initialReason); 
         reasonArea.setPrefRowCount(3);
+        
         DatePicker datePicker = new DatePicker(java.time.LocalDate.now().plusDays(7));
         grid.addRow(0, new Label("Item:"), itemCombo);
         grid.addRow(1, new Label(bundle.getString("form.borrower")), borrowerField);
@@ -868,6 +919,9 @@ public class DesktopUi {
                 itemCombo.setItems(items); 
                 if (isEdit && rowData.get("item") instanceof Map) {
                     Long id = ((Number) ((Map<?,?>)rowData.get("item")).get("id")).longValue();
+                    items.stream().filter(i -> i.id.equals(id)).findFirst().ifPresent(itemCombo::setValue);
+                } else if (!isEdit && prefill != null && prefill.containsKey("itemId")) {
+                    Long id = ((Number) prefill.get("itemId")).longValue();
                     items.stream().filter(i -> i.id.equals(id)).findFirst().ifPresent(itemCombo::setValue);
                 }
             } catch (Exception ignored) {}
@@ -931,33 +985,92 @@ public class DesktopUi {
         Button scanBtn = new Button(bundle.getString("audit.scanner.scan"));
         searchBox.getChildren().addAll(barcodeField, scanBtn);
         VBox resultArea = new VBox(10);
+        
         scanBtn.setOnAction(e -> {
             try {
+                // 1. Identify bag
                 Map<String, Object> bag = apiClient.get("bags/barcode/" + barcodeField.getText());
+                Long bagId = ((Number) bag.get("id")).longValue();
+                
+                // 2. Perform live audit
+                Map<String, Object> audit = apiClient.get("bags/" + bagId + "/audit");
                 resultArea.getChildren().clear();
-                resultArea.getChildren().add(new Label("Bag: " + bag.get("name")));
+                resultArea.getChildren().add(new Label("Bag: " + audit.get("name") + " [" + audit.get("barcode") + "]"));
+                
                 @SuppressWarnings("unchecked")
-                List<Map<String, Object>> items = (List<Map<String, Object>>) bag.get("expectedItems");
+                List<Map<String, Object>> items = (List<Map<String, Object>>) audit.get("items");
                 if (items == null || items.isEmpty()) {
                     resultArea.getChildren().add(new Label(bundle.getString("audit.scanner.empty")));
                 } else {
                     TableView<Map<String, Object>> table = new TableView<>();
                     table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-                    TableColumn<Map<String, Object>, String> itemCol = new TableColumn<>(bundle.getString("audit.scanner.expected"));
-                    itemCol.setCellValueFactory(cellData -> {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> itemData = (Map<String, Object>) cellData.getValue().get("item");
-                        return new javafx.beans.property.SimpleStringProperty(itemData != null ? itemData.get("name").toString() : "");
+                    
+                    TableColumn<Map<String, Object>, String> itemCol = new TableColumn<>("ITEM");
+                    itemCol.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().get("itemName").toString()));
+                    
+                    TableColumn<Map<String, Object>, String> expectedCol = new TableColumn<>("EXPECTED");
+                    expectedCol.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().get("intendedQuantity").toString()));
+                    
+                    TableColumn<Map<String, Object>, String> displacedCol = new TableColumn<>("BORROWED");
+                    displacedCol.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().get("displacedQuantity").toString()));
+                    
+                    TableColumn<Map<String, Object>, String> remainingCol = new TableColumn<>("REMAINING");
+                    remainingCol.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().get("remainingQuantity").toString()));
+                    remainingCol.setCellFactory(tc -> new TableCell<>() {
+                        @Override protected void updateItem(String val, boolean empty) {
+                            super.updateItem(val, empty);
+                            if (empty || val == null) setGraphic(null);
+                            else {
+                                Label l = new Label(val);
+                                if (Integer.parseInt(val) == 0) l.setTextFill(Color.RED);
+                                setGraphic(l);
+                            }
+                        }
                     });
-                    table.getColumns().add(itemCol);
+
+                    TableColumn<Map<String, Object>, String> anomalyCol = new TableColumn<>("ANOMALIES");
+                    anomalyCol.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().get("anomalyCount").toString()));
+                    anomalyCol.setCellFactory(tc -> new TableCell<>() {
+                        @Override protected void updateItem(String val, boolean empty) {
+                            super.updateItem(val, empty);
+                            if (empty || val == null) setGraphic(null);
+                            else {
+                                Label l = new Label(val);
+                                if (Integer.parseInt(val) > 0) {
+                                    l.setTextFill(Color.ORANGE);
+                                    l.setStyle("-fx-font-weight: bold;");
+                                }
+                                setGraphic(l);
+                            }
+                        }
+                    });
+                    
+                    TableColumn<Map<String, Object>, Void> actionCol = new TableColumn<>("ACTIONS");
+                    actionCol.setCellFactory(p -> new TableCell<>() {
+                        private final Button reportBtn = new Button("MISSING");
+                        {
+                            reportBtn.setStyle("-fx-font-size: 10px; -fx-background-color: #e74c3c; -fx-text-fill: white;");
+                            reportBtn.setOnAction(evt -> {
+                                Map<String, Object> row = getTableView().getItems().get(getIndex());
+                                Map<String, Object> prefill = Map.of(
+                                    "itemId", row.get("itemId"),
+                                    "borrowerName", "AUDIT_RECOVERY",
+                                    "reason", "Missing from bag " + audit.get("barcode")
+                                );
+                                showDisplacementUpsertForm(null, prefill);
+                            });
+                        }
+                        @Override protected void updateItem(Void item, boolean empty) {
+                            super.updateItem(item, empty);
+                            setGraphic(empty ? null : reportBtn);
+                        }
+                    });
+                    
+                    table.getColumns().addAll(itemCol, expectedCol, displacedCol, remainingCol, anomalyCol, actionCol);
                     table.setItems(FXCollections.observableArrayList(items));
                     resultArea.getChildren().add(table);
-                    Button displaceBtn = new Button(bundle.getString("audit.scanner.missing"));
-                    displaceBtn.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
-                    displaceBtn.setOnAction(evt -> showDisplacementUpsertForm(null));
-                    resultArea.getChildren().add(displaceBtn);
                 }
-            } catch (Exception ex) { showErrorPopup(bundle.getString("audit.error"), "Failed to fetch bag", ex); }
+            } catch (Exception ex) { showErrorPopup(bundle.getString("audit.error"), "Failed to fetch audit data", ex); }
         });
         root.getChildren().addAll(title, searchBox, resultArea);
         setView(root);
@@ -1030,6 +1143,25 @@ public class DesktopUi {
             VBox content = new VBox(10, new Label("Error details:"), textArea, copyBtn, new Label("Please check connection or contact programmer."));
             alert.getDialogPane().setContent(content);
             alert.showAndWait();
+        });
+    }
+
+    private void showDeleteConfirmation(String title, String resource, Map<String, Object> rowData, Runnable onDeleted) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(bundle.getString("confirm.title"));
+        alert.setHeaderText(bundle.getString("confirm.delete"));
+        Object displayVal = extractDeepValue(rowData);
+        alert.setContentText(title + ": " + (displayVal != null ? displayVal.toString() : "Unknown"));
+
+        alert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                try {
+                    apiClient.delete(resource, ((Number) rowData.get("id")).longValue());
+                    onDeleted.run();
+                } catch (Exception ex) {
+                    showErrorPopup("Delete Error", "Could not delete record", ex);
+                }
+            }
         });
     }
 }
