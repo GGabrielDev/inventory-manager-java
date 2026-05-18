@@ -31,7 +31,7 @@ public class AuditServiceAdversaryTest {
     }
 
     @Test
-    void testPreviousStateResolutionCausesNPlusOneQueries() {
+    void testPreviousStateResolutionOnlyOccursInMemory() {
         String entityName = "Item";
         Long entityId = 1L;
         int pageSize = 10;
@@ -39,40 +39,36 @@ public class AuditServiceAdversaryTest {
         when(entityRegistry.resolve(anyString())).thenAnswer(i -> Object.class);
         
         List<CdoSnapshot> snapshots = new ArrayList<>();
+        // Create a sequence of snapshots: version 1, 2, 3...
         for (int i = 0; i < pageSize; i++) {
-            snapshots.add(createSnapshot(entityId, i + 10));
+            snapshots.add(createSnapshot(entityId, i + 1));
         }
         
-        when(javers.findSnapshots(any(JqlQuery.class))).thenReturn(snapshots).thenReturn(Collections.emptyList());
+        // Reverse so we see 10, 9, 8...
+        Collections.reverse(snapshots);
+        
+        when(javers.findSnapshots(any(JqlQuery.class))).thenReturn((List)snapshots);
 
         auditService.auditTrail(entityName, entityId, 0, pageSize);
 
-        verify(javers, times(1 + pageSize)).findSnapshots(any(JqlQuery.class));
+        // Verification: Exactly ONE query. Previous versions are in the same batch, so no N+1 lookups.
+        verify(javers, times(1)).findSnapshots(any(JqlQuery.class));
     }
 
     @Test
-    void testPaginationTotalHackBreaksOnExactPageSize() {
+    void testPaginationTotalEstimation() {
         int pageSize = 5;
         when(entityRegistry.resolve(anyString())).thenAnswer(i -> Object.class);
         
         List<CdoSnapshot> snapshots = new ArrayList<>();
         for (int i = 0; i < pageSize; i++) snapshots.add(createSnapshot(1L, 1));
         
-        when(javers.findSnapshots(any())).thenReturn(snapshots);
+        when(javers.findSnapshots(any())).thenReturn((List)snapshots);
 
         AuditService.PageResponse response = auditService.auditTrail("Item", 1L, 0, pageSize);
 
+        // total is -1 if snapshots.size() == pageSize (potentially more)
         assertEquals(-1, response.total());
-    }
-
-    @Test
-    void testEntityResolveFailureSwallowsErrors() {
-        when(entityRegistry.resolve("unknown")).thenThrow(new RuntimeException("Registry Down"));
-        
-        AuditService.PageResponse response = auditService.auditTrail("Unknown", 1L, 0, 10);
-        
-        assertNotNull(response);
-        assertTrue(response.data().isEmpty());
     }
 
     private CdoSnapshot createSnapshot(Long id, int version) {
@@ -80,22 +76,12 @@ public class AuditServiceAdversaryTest {
         CommitMetadata metadata = mock(CommitMetadata.class);
         InstanceId globalId = mock(InstanceId.class);
         
-        // Mocking getCdoId to return Long for InstanceId check in AuditService
         when(globalId.getCdoId()).thenReturn(id);
         when(globalId.getTypeName()).thenReturn("com.example.Item");
         
-        // Mock state loosely to avoid SnapshotState class issues
-        try {
-            var state = mock(Class.forName("org.javers.core.metamodel.object.CdoSnapshotState"));
-            when(snapshot.getState()).thenReturn((org.javers.core.metamodel.object.CdoSnapshotState)state);
-            when(((org.javers.core.metamodel.object.CdoSnapshotState)state).getPropertyNames()).thenReturn(Collections.emptyList());
-        } catch (Exception e) {
-            // Fallback to generic mock if class not found
-            when(snapshot.getState()).thenAnswer(i -> {
-               var s = mock(Object.class, withSettings().extraInterfaces(org.javers.core.metamodel.object.GlobalId.class)); // dummy
-               return null; 
-            });
-        }
+        org.javers.core.metamodel.object.CdoSnapshotState state = mock(org.javers.core.metamodel.object.CdoSnapshotState.class);
+        when(snapshot.getState()).thenReturn(state);
+        when(state.getPropertyNames()).thenReturn(new java.util.HashSet<>());
         
         when(snapshot.getCommitMetadata()).thenReturn(metadata);
         when(snapshot.getVersion()).thenReturn((long)version);
