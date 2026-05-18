@@ -15,13 +15,19 @@ npx repomix --ignore "target/, .git/" --output current_state.xml --quiet
 # We pipe the state and rules directly.
 
 echo "DEBUG: Running auditor..."
+# Background heartbeat to prevent timeout
+(while true; do sleep 10; echo "STILL AUDITING - DO NOT CANCEL - $(date)" >&2; done) &
+HEARTBEAT_PID=$!
+
 cat current_state.xml | gemini --prompt "Act as the Principal Architectural Auditor. 
 Analyze the provided repository state (from stdin) against the Auditor Rules.
 Use the inventory-manager-auditor MCP tools to verify boundaries.
-RULES: $(cat .agents/rules/auditor-rules.md)" --yolo > .gemini_push_result 2>&1
+RULES: $(cat .agents/rules/auditor-rules.md)" --yolo 2>&1 | tee .gemini_push_result
+
+kill $HEARTBEAT_PID
+wait $HEARTBEAT_PID 2>/dev/null
 
 RESULT=$(cat .gemini_push_result)
-echo "$RESULT"
 
 # Cleanup
 rm current_state.xml

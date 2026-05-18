@@ -71,38 +71,63 @@ public class AuditView {
         table.getColumns().clear();
         if (data == null || data.isEmpty()) return;
 
-        java.util.Set<String> allKeys = new java.util.LinkedHashSet<>();
-        for (Map<String, Object> row : data) {
-            allKeys.addAll(row.keySet());
-        }
+        TableColumn<Map<String, Object>, String> opCol = new TableColumn<>("OP");
+        opCol.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(String.valueOf(d.getValue().get("operation"))));
+        opCol.setPrefWidth(80);
 
-        for (String key : allKeys) {
-            String headerText = context.bundle().containsKey("col." + key) ? context.bundle().getString("col." + key) : key.toUpperCase();
-            TableColumn<Map<String, Object>, String> col = new TableColumn<>(headerText);
-            
-            if (key.equalsIgnoreCase("state")) {
-                col.setCellFactory(tc -> new TableCell<>() {
-                    @Override protected void updateItem(String item, boolean empty) {
-                        super.updateItem(item, empty);
-                        if (empty) { setGraphic(null); }
-                        else {
-                            Map<String, Object> row = getTableView().getItems().get(getIndex());
-                            Object stateObj = row.get("state");
-                            Label label = new Label(stateObj != null ? stateObj.toString() : "");
-                            label.setWrapText(true);
-                            label.setMaxWidth(400);
-                            setGraphic(label);
+        TableColumn<Map<String, Object>, String> userCol = new TableColumn<>("USER");
+        userCol.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(String.valueOf(d.getValue().get("changedByUsername"))));
+        userCol.setPrefWidth(120);
+
+        TableColumn<Map<String, Object>, String> dateCol = new TableColumn<>("DATE");
+        dateCol.setCellValueFactory(d -> {
+            Object val = d.getValue().get("changedAt");
+            if (val != null) {
+                try {
+                    java.time.Instant instant = java.time.Instant.parse(val.toString());
+                    java.time.LocalDateTime ldt = java.time.LocalDateTime.ofInstant(instant, java.time.ZoneId.systemDefault());
+                    return new javafx.beans.property.SimpleStringProperty(ldt.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                } catch (Exception e) { return new javafx.beans.property.SimpleStringProperty(val.toString()); }
+            }
+            return new javafx.beans.property.SimpleStringProperty("");
+        });
+        dateCol.setPrefWidth(150);
+
+        TableColumn<Map<String, Object>, Void> diffCol = new TableColumn<>("CHANGES");
+        diffCol.setCellFactory(tc -> new TableCell<>() {
+            private final VBox box = new VBox(2);
+            @Override protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) { setGraphic(null); }
+                else {
+                    box.getChildren().clear();
+                    Map<String, Object> row = getTableView().getItems().get(getIndex());
+                    Map<?, ?> current = (Map<?, ?>) row.get("state");
+                    Map<?, ?> previous = (Map<?, ?>) row.get("previousState");
+                    
+                    if (current != null) {
+                        java.util.Set<Object> allKeys = new java.util.HashSet<>(current.keySet());
+                        if (previous != null) allKeys.addAll(previous.keySet());
+                        
+                        for (Object key : allKeys) {
+                            Object curVal = current.get(key);
+                            Object preVal = previous != null ? previous.get(key) : null;
+                            
+                            if ((preVal == null && curVal != null) || (preVal != null && curVal == null) || (preVal != null && !preVal.equals(curVal))) {
+                                Label l = new Label(key + ": " + (preVal != null ? preVal : "NONE") + " ➡️ " + (curVal != null ? curVal : "DELETED"));
+                                if (preVal != null && curVal != null) l.setStyle("-fx-text-fill: #e67e22; -fx-font-size: 11px;");
+                                else if (curVal == null) l.setStyle("-fx-text-fill: #c0392b; -fx-font-size: 11px;");
+                                else l.setStyle("-fx-text-fill: #27ae60; -fx-font-size: 11px;");
+                                box.getChildren().add(l);
+                            }
                         }
                     }
-                });
-            } else {
-                col.setCellValueFactory(cellData -> {
-                    Object val = UIUtils.extractDeepValue(cellData.getValue().get(key));
-                    return new javafx.beans.property.SimpleStringProperty(val == null ? "" : val.toString());
-                });
+                    setGraphic(box);
+                }
             }
-            table.getColumns().add(col);
-        }
+        });
+
+        table.getColumns().addAll(opCol, userCol, dateCol, diffCol);
         table.setItems(FXCollections.observableArrayList(data));
     }
 }

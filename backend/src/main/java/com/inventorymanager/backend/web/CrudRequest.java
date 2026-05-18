@@ -14,7 +14,7 @@ public final class CrudRequest {
 
     public record UserUpsert(
             @NotBlank String username,
-            @NotBlank String password,
+            String password,
             List<Long> roleIds,
             Long branchId
     ) {}

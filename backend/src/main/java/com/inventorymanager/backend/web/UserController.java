@@ -60,6 +60,9 @@ public class UserController {
     @PostMapping
     @PreAuthorize("hasAuthority('create_user')")
     public User create(@Valid @RequestBody CrudRequest.UserUpsert request) {
+        if (request.password() == null || request.password().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Password is required for new users");
+        }
         User user = new User();
         user.setUsername(request.username());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
@@ -121,8 +124,13 @@ public class UserController {
 
     private Set<Role> fetchRoles(java.util.List<Long> roleIds) {
         if (roleIds == null || roleIds.isEmpty()) {
-            return new HashSet<>();
+            return new java.util.HashSet<>();
         }
-        return new HashSet<>(roleRepository.findAllById(roleIds));
+        java.util.Set<Long> uniqueIds = new java.util.HashSet<>(roleIds);
+        java.util.List<Role> roles = roleRepository.findAllById(uniqueIds);
+        if (roles.size() != uniqueIds.size()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "One or more roles not found");
+        }
+        return new java.util.HashSet<>(roles);
     }
 }

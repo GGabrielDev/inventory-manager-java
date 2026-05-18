@@ -97,8 +97,13 @@ public class RoleController {
 
     private Set<Permission> fetchPermissions(java.util.List<Long> permissionIds) {
         if (permissionIds == null || permissionIds.isEmpty()) {
-            return new HashSet<>();
+            return new java.util.HashSet<>();
         }
-        return new HashSet<>(permissionRepository.findAllById(permissionIds));
+        java.util.Set<Long> uniqueIds = new java.util.HashSet<>(permissionIds);
+        java.util.List<Permission> permissions = permissionRepository.findAllById(uniqueIds);
+        if (permissions.size() != uniqueIds.size()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "One or more permissions not found");
+        }
+        return new java.util.HashSet<>(permissions);
     }
 }

@@ -45,7 +45,7 @@ class BagControllerTest {
         };
         
         // Dummy AuditService
-        AuditService auditService = new AuditService(null, null) {
+        AuditService auditService = new AuditService(null, null, null) {
             @Override public void commitCreate(Long a, Object e) {}
             @Override public void commitUpdate(Long a, Object e) {}
             @Override public void commitDelete(Long a, Object e) {}

@@ -25,21 +25,59 @@ public class UIUtils {
         });
     }
 
+    public static class ErrorReport {
+        public final String displayMessage;
+        public final String backendDetails;
+        public ErrorReport(String msg, String det) { this.displayMessage = msg; this.backendDetails = det; }
+    }
+
+    public static ErrorReport parseErrorReport(String originalMessage, Exception ex) {
+        String displayMessage = originalMessage;
+        String backendDetails = "";
+        if (ex.getMessage() != null && ex.getMessage().contains("{")) {
+            try {
+                String msg = ex.getMessage();
+                int start = msg.indexOf("{");
+                String jsonStr = msg.substring(start);
+                java.util.Map<String, Object> errorMap = JsonUtil.map(jsonStr);
+                if (errorMap.containsKey("message") && errorMap.get("message") != null) {
+                    displayMessage = String.valueOf(errorMap.get("message"));
+                }
+                if (errorMap.containsKey("backendError") && errorMap.get("backendError") != null) {
+                    backendDetails = "Backend Error: " + String.valueOf(errorMap.get("backendError"));
+                }
+            } catch (Exception ignored) {}
+        }
+        return new ErrorReport(displayMessage, backendDetails);
+    }
+
     public static void showErrorPopup(String title, String message, Exception ex) {
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle(title);
             alert.setHeaderText(message);
+            
+            ErrorReport report = parseErrorReport(message, ex);
+            String displayMessage = report.displayMessage;
+            String backendDetails = report.backendDetails;
+
             StringBuilder sb = new StringBuilder();
             sb.append("--- ERROR REPORT ---\n").append("Timestamp: ").append(java.time.LocalDateTime.now()).append("\n")
-              .append("Title: ").append(title).append("\n").append("Message: ").append(message).append("\n")
-              .append("Exception: ").append(ex.toString()).append("\n\n").append("--- STACK TRACE ---\n");
+              .append("Title: ").append(title).append("\n").append("Message: ").append(displayMessage).append("\n")
+              .append("Exception: ").append(ex.toString()).append("\n\n");
+            
+            if (!backendDetails.isBlank()) {
+                sb.append("--- BACKEND STACK TRACE ---\n").append(backendDetails).append("\n\n");
+            }
+            
+            sb.append("--- FRONTEND STACK TRACE ---\n");
             java.io.StringWriter sw = new java.io.StringWriter();
             ex.printStackTrace(new java.io.PrintWriter(sw));
             sb.append(sw.toString());
+            
             String detailedReport = sb.toString();
             TextArea textArea = new TextArea(detailedReport);
-            textArea.setEditable(false); textArea.setWrapText(true); textArea.setPrefHeight(200); textArea.setPrefWidth(500);
+            textArea.setEditable(false); textArea.setWrapText(true); textArea.setPrefHeight(300); textArea.setPrefWidth(600);
             Button copyBtn = new Button("📋 Copy error to clipboard");
             copyBtn.setOnAction(e -> {
                 javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();

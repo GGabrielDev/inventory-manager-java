@@ -20,14 +20,20 @@ fi
 # We expect the AI to output PASS or FAIL.
 
 echo "DEBUG: Running gemini..."
-gemini --prompt "Review the following staged changes against the Test Adversary Rules. 
+# Background heartbeat to prevent timeout
+(while true; do sleep 10; echo "STILL WORKING - DO NOT CANCEL - $(date)" >&2; done) &
+HEARTBEAT_PID=$!
+
+git diff --cached | gemini --prompt "Review the staged changes from stdin against the Test Adversary Rules. 
 Generate and run hostile tests if needed. 
-RULES: $(cat .agents/rules/test-adversary-rules.md)
-DIFF:
-$STAGED_DIFF" --yolo > .gemini_hook_result 2>&1
+RULES: $(cat .agents/rules/test-adversary-rules.md)" --yolo 2>&1 | tee .gemini_hook_result
+
+kill $HEARTBEAT_PID
+wait $HEARTBEAT_PID 2>/dev/null
 
 RESULT=$(cat .gemini_hook_result)
-echo "$RESULT"
+# Cleanup immediately
+rm .gemini_hook_result
 
 if [[ "$RESULT" == *"FAIL"* ]]; then
     echo "❌ Test Adversary Rejected Commit:"

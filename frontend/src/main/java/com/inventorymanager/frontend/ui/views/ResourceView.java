@@ -52,44 +52,85 @@ public class ResourceView {
         
         ComboBox<UIUtils.IdName> stateFilter = new ComboBox<>();
         stateFilter.setPromptText("State...");
+        ComboBox<UIUtils.IdName> muniFilter = new ComboBox<>();
+        muniFilter.setPromptText("Municipality...");
         ComboBox<UIUtils.IdName> branchFilter = new ComboBox<>();
         branchFilter.setPromptText("Branch...");
+        ComboBox<UIUtils.IdName> catFilter = new ComboBox<>();
+        catFilter.setPromptText("Category...");
+
         Button applyFilter = new Button(context.bundle().getString("resource.apply"));
         Button clearFilter = new Button(context.bundle().getString("resource.clear"));
         
-        filterBar.getChildren().addAll(new Label(context.bundle().getString("resource.filter")), stateFilter, branchFilter, applyFilter, clearFilter);
+        filterBar.getChildren().add(new Label(context.bundle().getString("resource.filter")));
+        if (List.of("items", "branches", "departments", "municipalities").contains(resource)) filterBar.getChildren().add(stateFilter);
+        if (List.of("items", "branches", "departments", "parishes").contains(resource)) filterBar.getChildren().add(muniFilter);
+        if (List.of("items", "departments", "users", "bags").contains(resource)) filterBar.getChildren().add(branchFilter);
+        if (List.of("items").contains(resource)) filterBar.getChildren().add(catFilter);
+        filterBar.getChildren().addAll(applyFilter, clearFilter);
         
-        applyFilter.setOnAction(e -> loadFilteredData(stateFilter.getValue(), branchFilter.getValue()));
+        applyFilter.setOnAction(e -> loadFilteredData(stateFilter.getValue(), muniFilter.getValue(), branchFilter.getValue(), catFilter.getValue()));
         clearFilter.setOnAction(e -> {
             stateFilter.setValue(null);
+            muniFilter.setValue(null);
             branchFilter.setValue(null);
-            loadFilteredData(null, null);
+            catFilter.setValue(null);
+            loadFilteredData(null, null, null, null);
         });
-        refreshBtn.setOnAction(e -> loadFilteredData(stateFilter.getValue(), branchFilter.getValue()));
+        refreshBtn.setOnAction(e -> loadFilteredData(stateFilter.getValue(), muniFilter.getValue(), branchFilter.getValue(), catFilter.getValue()));
         addBtn.setOnAction(e -> context.formShower().accept(title, resource));
 
-        Platform.runLater(() -> {
+        new Thread(() -> {
             try {
-                stateFilter.setItems(UIUtils.fetchIdNames(context.apiClient(), "states"));
-                branchFilter.setItems(UIUtils.fetchIdNames(context.apiClient(), "branches"));
+                if (List.of("items", "branches", "departments", "municipalities").contains(resource)) {
+                    var items = UIUtils.fetchIdNames(context.apiClient(), "states");
+                    Platform.runLater(() -> stateFilter.setItems(items));
+                }
+                if (List.of("items", "branches", "departments", "parishes").contains(resource)) {
+                    var items = UIUtils.fetchIdNames(context.apiClient(), "municipalities");
+                    Platform.runLater(() -> muniFilter.setItems(items));
+                }
+                if (List.of("items", "departments", "users", "bags").contains(resource)) {
+                    var items = UIUtils.fetchIdNames(context.apiClient(), "branches");
+                    Platform.runLater(() -> branchFilter.setItems(items));
+                }
+                if (List.of("items").contains(resource)) {
+                    var items = UIUtils.fetchIdNames(context.apiClient(), "categories");
+                    Platform.runLater(() -> catFilter.setItems(items));
+                }
             } catch (Exception ignored) {}
-        });
+        }).start();
 
         root.getChildren().addAll(header, filterBar, table);
         context.viewSetter().accept(root);
-        loadFilteredData(null, null);
+        loadFilteredData(null, null, null, null);
     }
 
-    private void loadFilteredData(UIUtils.IdName state, UIUtils.IdName branch) {
-        try {
-            String path = resource + "?page=1&pageSize=100";
-            if (state != null) path += "&stateId=" + state.id;
-            if (branch != null) path += "&branchId=" + branch.id;
-            List<Map<String, Object>> data = context.apiClient().list(path);
-            updateTableColumns(data, () -> loadFilteredData(state, branch));
-        } catch (Exception e) {
-            UIUtils.showErrorPopup("Fetch Error", "Could not load data", e);
-        }
+    private final java.util.concurrent.atomic.AtomicInteger requestId = new java.util.concurrent.atomic.AtomicInteger(0);
+
+    private void loadFilteredData(UIUtils.IdName state, UIUtils.IdName muni, UIUtils.IdName branch, UIUtils.IdName cat) {
+        int currentReqId = requestId.incrementAndGet();
+        new Thread(() -> {
+            try {
+                String path = resource + "?page=1&pageSize=100";
+                if (state != null) path += "&stateId=" + state.id;
+                if (muni != null) path += "&municipalityId=" + muni.id;
+                if (branch != null) path += "&branchId=" + branch.id;
+                if (cat != null) path += "&categoryId=" + cat.id;
+                List<Map<String, Object>> data = context.apiClient().list(path);
+                Platform.runLater(() -> {
+                    if (currentReqId == requestId.get()) {
+                        updateTableColumns(data, () -> loadFilteredData(state, muni, branch, cat));
+                    }
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    if (currentReqId == requestId.get()) {
+                        UIUtils.showErrorPopup("Fetch Error", "Could not load data", e);
+                    }
+                });
+            }
+        }).start();
     }
 
     private void updateTableColumns(List<Map<String, Object>> data, Runnable onRefresh) {
@@ -170,12 +211,14 @@ public class ResourceView {
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                try {
-                    context.apiClient().delete(resource, ((Number) rowData.get("id")).longValue());
-                    onDeleted.run();
-                } catch (Exception ex) {
-                    UIUtils.showErrorPopup("Delete Error", "Could not delete record", ex);
-                }
+                new Thread(() -> {
+                    try {
+                        context.apiClient().delete(resource, ((Number) rowData.get("id")).longValue());
+                        Platform.runLater(onDeleted);
+                    } catch (Exception ex) {
+                        Platform.runLater(() -> UIUtils.showErrorPopup("Delete Error", "Could not delete record", ex));
+                    }
+                }).start();
             }
         });
     }
