@@ -29,8 +29,9 @@ public class AuditService {
         if (author == null) return null;
         try {
             Long id = Long.parseLong(author);
-            if (userCache != null && userCache.containsKey(id)) return userCache.get(id);
-            // Fallback to individual lookup if not in cache (e.g. newly created user or bulk load failed)
+            // INTEGRITY: If we have a cache (from bulk load), use it exclusively to avoid N+1 queries.
+            if (userCache != null) return userCache.getOrDefault(id, "User #" + id);
+            // Fallback for single-lookups or when cache is not provided
             return userRepository.findById(id).map(com.inventorymanager.backend.domain.User::getUsername).orElse("User #" + id);
         } catch (Exception e) {
             return author;
@@ -132,7 +133,7 @@ public class AuditService {
                             var voId = (org.javers.core.metamodel.object.ValueObjectId) snapshot.getGlobalId();
                             if (voId.getOwnerId() instanceof org.javers.core.metamodel.object.InstanceId) {
                                 var ownerId = (org.javers.core.metamodel.object.InstanceId) voId.getOwnerId();
-                                queryBuilderPrev = QueryBuilder.byValueObjectId(ownerId.getCdoId(), actualClass, voId.getFragment());
+                                queryBuilderPrev = QueryBuilder.byValueObjectId(ownerId.getCdoId(), entityRegistry.resolve(ownerId.getTypeName().toLowerCase()), voId.getFragment());
                             }
                         }
 
@@ -140,8 +141,9 @@ public class AuditService {
                             var prevSnapshots = javers.findSnapshots(queryBuilderPrev.withVersion(snapshot.getVersion() - 1).build());
                             if (!prevSnapshots.isEmpty()) {
                                 final Map<String, Object> psMap = new java.util.HashMap<>();
-                                prevSnapshots.get(0).getState().getPropertyNames().forEach(name ->
-                                        psMap.put(name, prevSnapshots.get(0).getState().getPropertyValue(name))
+                                var prevS = prevSnapshots.get(0);
+                                prevS.getState().getPropertyNames().forEach(name ->
+                                        psMap.put(name, prevS.getState().getPropertyValue(name))
                                 );
                                 prevStateMap = psMap;
                             }

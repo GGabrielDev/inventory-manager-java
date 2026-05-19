@@ -35,6 +35,8 @@ These rules are absolute and must be followed without exception.
 
 8. **Commit Granularity**: Execute work in small, focused commits. Avoid bundling unrelated changes into one commit.
 
+9. **No Hook Bypass**: Never propose or use `git commit --no-verify` or `git push --no-verify`.
+
 -----
 
 ## Step 1: Context Gathering & Initial Analysis

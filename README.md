@@ -68,8 +68,9 @@ If you use a custom user/password, make sure to update your `backend/.env` file.
 
 ## Quality gates
 
-- Local hooks are not used for enforcement.
+- Remote required checks are the source of truth for merge enforcement.
 - Optional local passive post-commit checks write to `.gemini/local-guards/latest-summary.md`.
+- Local pre-push hook runs `mvn -q -DskipTests clean compile` and `mvn -q -pl backend test`.
 - Merge protection should require these GitHub checks:
   - `CI / Build and Unit Tests`
   - `Gemini Hard Guard / Adversary Agent`

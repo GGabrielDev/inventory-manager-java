@@ -42,6 +42,15 @@ To support a high-velocity, "vibe-coded" development workflow, this project empl
 - **Output:** `.gemini/local-guards/latest-summary.md` (and per-run artifacts).
 - **Purpose:** Catch issues earlier with minimal commit-sized diffs before pushing.
 
+## Local Pre-Push Java Gate (Blocking)
+
+- **Trigger:** Every local `git push`.
+- **Actor:** Git hook `tools/hooks/pre-push`.
+- **Checks:**
+  - `mvn -q -DskipTests clean compile`
+  - `mvn -q -pl backend test`
+- **Behavior:** Push is blocked when any check fails.
+
 ## Local Setup
 
 To provision local prerequisites on a new machine:
@@ -51,10 +60,11 @@ To provision local prerequisites on a new machine:
 ```
 
 After setup, each commit starts passive guards automatically.
+Each push also runs the local Java pre-push gate.
 
 ## Bypassing
 
-- Local git hook bypass flags such as `--no-verify` no longer affect enforcement.
+- Do not bypass local hooks with `--no-verify`; keep checks active in normal workflow.
 - Hard checks run server-side in GitHub Actions and must pass before merge.
 - Configure branch protection to require:
   - `CI / Build and Unit Tests`

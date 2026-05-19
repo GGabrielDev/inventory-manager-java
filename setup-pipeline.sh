@@ -21,7 +21,10 @@ gemini mcp add inventory-manager-auditor node $MCP_SERVER_PATH --include-tools v
 # 3. Enable local passive post-commit guards (non-blocking)
 echo "🔗 Linking local passive post-commit guard hook..."
 ln -sf ../../tools/hooks/post-commit .git/hooks/post-commit
+echo "🔗 Linking local pre-push Java checks hook..."
+ln -sf ../../tools/hooks/pre-push .git/hooks/pre-push
 chmod +x tools/hooks/post-commit
+chmod +x tools/hooks/pre-push
 chmod +x tools/hooks/run-passive-guards.sh
 
 echo "✅ Pipeline setup complete."
@@ -34,4 +37,5 @@ echo "  - Gemini Hard Guard / Architecture Agent"
 echo ""
 echo "💡 Local passive checks run after each commit and write reports to:"
 echo "  .gemini/local-guards/latest-summary.md"
+echo "🧪 Local pre-push hook runs Maven compile + backend tests and blocks push on failures."
 echo ""
