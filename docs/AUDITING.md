@@ -49,7 +49,7 @@ To support a high-velocity, "vibe-coded" development workflow, this project empl
 - **Checks:**
   - `mvn -q -DskipTests clean compile`
   - `mvn -q -pl backend test`
-  - Headless Copilot adversary + auditor checks (`tools/hooks/run-copilot-prepush-guards.sh`)
+  - Recursive headless Copilot adversary + auditor checks (`tools/hooks/run-copilot-recursive-guards.sh`)
 - **Behavior:** Push is blocked when any check fails.
 
 ## Local Setup
@@ -61,7 +61,7 @@ To provision local prerequisites on a new machine:
 ```
 
 After setup, each commit starts passive guards automatically.
-Each push also runs the local Java pre-push gate.
+Each push also runs the local Java pre-push gate and recursive Copilot loop.
 
 ## Bypassing
 

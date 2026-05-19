@@ -14,6 +14,7 @@
 
 .gemini/
 .copilot/local-guards/
+.copilot/recursive-guards/
 gha-creds-*.json
 tools/mcp-server/dist/
 tools/mcp-server/node_modules/

@@ -5,10 +5,6 @@ set -euo pipefail
 ROOT_DIR=$(git rev-parse --show-toplevel)
 cd "${ROOT_DIR}"
 
-REFS_FILE=$(mktemp)
-cat > "${REFS_FILE}"
-trap 'rm -f "${REFS_FILE}"' EXIT
-
 echo "🔎 Running pre-push Java checks..."
 
 echo "• Compile all modules"
@@ -17,7 +13,7 @@ mvn -q -DskipTests clean compile
 echo "• Run backend unit/integration tests"
 mvn -q -pl backend test
 
-echo "• Run local headless Copilot adversary/auditor checks"
-"${ROOT_DIR}/tools/hooks/run-copilot-prepush-guards.sh" "${REFS_FILE}"
+echo "• Run local recursive Copilot adversary/auditor checks"
+"${ROOT_DIR}/tools/hooks/run-copilot-recursive-guards.sh" 3
 
 echo "✅ Pre-push checks passed."

@@ -26,7 +26,7 @@ ln -sf ../../tools/hooks/pre-push .git/hooks/pre-push
 chmod +x tools/hooks/post-commit
 chmod +x tools/hooks/pre-push
 chmod +x tools/hooks/run-passive-guards.sh
-chmod +x tools/hooks/run-copilot-prepush-guards.sh
+chmod +x tools/hooks/run-copilot-recursive-guards.sh
 
 echo "✅ Pipeline setup complete."
 echo ""
@@ -38,7 +38,7 @@ echo "  - Gemini Hard Guard / Architecture Agent"
 echo ""
 echo "💡 Local passive checks run after each commit and write reports to:"
 echo "  .gemini/local-guards/latest-summary.md"
-echo "🧪 Local pre-push hook runs Maven compile + backend tests + headless Copilot guards."
+echo "🧪 Local pre-push hook runs Maven compile + backend tests + recursive headless Copilot guards."
 echo "📄 Pre-push Copilot summary:"
-echo "  .copilot/local-guards/latest-pre-push-summary.md"
+echo "  .copilot/recursive-guards/latest-summary.md"
 echo ""

@@ -26,8 +26,9 @@
 - Always make atomic, focused commits with descriptive Conventional Commits messages for any changes made by the AI.
 - Prefer small incremental commits per PR (single concern per commit). Avoid large monolithic commits when changes can be split safely.
 - After each local commit, review passive guard output in `.gemini/local-guards/latest-summary.md` and address blocking findings before next commit/push.
-- Before pushing, review headless Copilot pre-push summary at `.copilot/local-guards/latest-pre-push-summary.md` when a push is rejected.
+- Before pushing, review recursive headless Copilot pre-push summary at `.copilot/recursive-guards/latest-summary.md` when a push is rejected.
 - Never bypass local hooks/checks with `--no-verify`.
+- For pre-push failures, rerun recursive Copilot guard after fixes until PASS or max attempts reached.
 - Follow the CI/CD pipeline rules: all new work must go into a separate branch, pass tests in `ci.yml`, and be merged via PR to trigger `release.yml` for changelog and artifact generation.
 - Do not push directly into `master` unless for extremely minor changes or emergency hotfixes.
 - Always reference and adhere to the project's style guidelines (e.g., `docs/STYLE-GUIDE.md`) when planning or programming UI components.

@@ -73,8 +73,8 @@ If you use a custom user/password, make sure to update your `backend/.env` file.
 - Local pre-push hook runs:
   - `mvn -q -DskipTests clean compile`
   - `mvn -q -pl backend test`
-  - local headless Copilot adversary/auditor checks
-- Pre-push Copilot summary: `.copilot/local-guards/latest-pre-push-summary.md`.
+  - recursive headless Copilot adversary/auditor checks
+- Pre-push Copilot summary: `.copilot/recursive-guards/latest-summary.md`.
 - Merge protection should require these GitHub checks:
   - `CI / Build and Unit Tests`
   - `Gemini Hard Guard / Adversary Agent`
