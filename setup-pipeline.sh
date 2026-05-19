@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # setup-pipeline.sh
-# Automates the setup of the Strict Auditing Pipeline for the project.
+# Automates local prerequisites for the strict auditing pipeline.
 
 echo "🚀 Initializing Strict Auditing Pipeline..."
 
@@ -13,22 +13,25 @@ npm run build
 MCP_SERVER_PATH=$(pwd)/dist/index.js
 cd ../..
 
-# 2. Configure Git Hooks
-echo "🔗 Linking Git Hooks..."
-ln -sf ../../tools/hooks/pre-commit .git/hooks/pre-commit
-ln -sf ../../tools/hooks/pre-push .git/hooks/pre-push
-chmod +x tools/hooks/pre-commit
-chmod +x tools/hooks/pre-push
-
-# 3. Register MCP Server with Gemini CLI
+# 2. Register MCP Server with Gemini CLI
 # Note: This assumes 'gemini' is in the PATH.
 echo \"🤖 Registering MCP Server with Gemini CLI...\"
 gemini mcp add inventory-manager-auditor node $MCP_SERVER_PATH --include-tools verify_rbac_boundary,analyze_test_gaps,audit_javers_compliance,check_ui_style
 
+# 3. Enable local passive post-commit guards (non-blocking)
+echo "🔗 Linking local passive post-commit guard hook..."
+ln -sf ../../tools/hooks/post-commit .git/hooks/post-commit
+chmod +x tools/hooks/post-commit
+chmod +x tools/hooks/run-passive-guards.sh
+
 echo "✅ Pipeline setup complete."
 echo ""
-echo "📝 FINAL STEP: To enforce token savings, please add the Caveman and RTK guidelines"
-echo "to your global gemini config (system_instruction field)."
+echo "🛡️ Enforcement now runs in GitHub Actions via dedicated Gemini guard agents."
+echo "Set branch protection and require checks:"
+echo "  - CI / Build and Unit Tests"
+echo "  - Gemini Hard Guard / Adversary Agent"
+echo "  - Gemini Hard Guard / Architecture Agent"
 echo ""
-echo "Caveman: 'Respond terse like smart caveman. Drop articles/filler. Technical terms exact.'"
-echo "RTK: 'Always use rtk gain to track savings and prefix commands with rtk where possible.'"
+echo "💡 Local passive checks run after each commit and write reports to:"
+echo "  .gemini/local-guards/latest-summary.md"
+echo ""

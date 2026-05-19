@@ -9,33 +9,54 @@ To support a high-velocity, "vibe-coded" development workflow, this project empl
 - **Workflow:** Implement logic and UI components following `copilot-instructions.md`.
 - **Constraint:** The Builder focuses on velocity and implementation; it is not trusted to validate its own work rigorously.
 
-### Stage 2: The Test Adversary (Pre-Commit)
-- **Trigger:** `git commit`
-- **Actor:** Isolated "Adversary" persona with no context of the Builder's thoughts.
+### Stage 2: The Test Adversary (PR Hard Guard)
+- **Trigger:** Pull Request updates to protected branches.
+- **Actor:** Dedicated Gemini "Adversary Agent" in GitHub Actions.
 - **Logic:**
-  - Analyzes the git diff.
-  - Generates hostile JUnit/Mockito tests (null pointers, privilege escalation, malformed data).
-  - Executes `mvn test`.
-- **Enforcement:** Commit is blocked if adversarial tests fail or if tautological (useless) tests are detected.
+  - Reads changed files from PR diff context.
+  - Executes backend tests and adversarial scrutiny.
+  - Writes a strict `PASS`/`FAIL` verdict artifact consumed by CI.
+- **Enforcement:** Merge is blocked by required status check when verdict is `FAIL`.
 
-### Stage 3: The Architectural Auditor (Pre-Push)
-- **Trigger:** `git push`
-- **Actor:** Isolated "Principal Auditor" persona.
-- **Tools:** Custom TypeScript MCP Server (`tools/mcp-server`).
+### Stage 3: The Architectural Auditor (PR Hard Guard)
+- **Trigger:** Pull Request updates to protected branches.
+- **Actor:** Dedicated Gemini "Architecture Agent" in GitHub Actions.
 - **Logic:**
   - **RBAC:** Verifies all new Controller methods have `@PreAuthorize`.
-  - **Audit:** Ensures new Entities are registered in `EntityRegistry` for JaVers.
+  - **Audit:** Ensures write-path changes preserve JaVers audit integrity.
   - **UI Style:** Validates JavaFX layouts against `STYLE-GUIDE.md`.
   - **Integrity:** Checks the Physical Hierarchy (State > Municipality > Parish > Branch).
-- **Enforcement:** Push is blocked if any systemic invariants are violated.
+  - Writes a strict `PASS`/`FAIL` verdict artifact consumed by CI.
+- **Enforcement:** Merge is blocked by required status check when verdict is `FAIL`.
+
+## Local Passive Guardrail (Post-Commit, Non-Blocking)
+
+- **Trigger:** Every local `git commit`.
+- **Actor:** Local Gemini passive runners (`tools/hooks/post-commit` -> `tools/hooks/run-passive-guards.sh`).
+- **Behavior:**
+  - Commit succeeds immediately (no blocking).
+  - Runner analyzes only the new commit and generates:
+    - Adversary report
+    - Auditor report
+    - Summary report
+- **Output:** `.gemini/local-guards/latest-summary.md` (and per-run artifacts).
+- **Purpose:** Catch issues earlier with minimal commit-sized diffs before pushing.
 
 ## Local Setup
 
-To activate the pipeline on a new machine:
+To provision local prerequisites on a new machine:
 
 ```bash
 ./setup-pipeline.sh
 ```
 
+After setup, each commit starts passive guards automatically.
+
 ## Bypassing
-In emergencies, hooks can be bypassed using standard git flags (`--no-verify`), but this should be logged in the commit message.
+
+- Local git hook bypass flags such as `--no-verify` no longer affect enforcement.
+- Hard checks run server-side in GitHub Actions and must pass before merge.
+- Configure branch protection to require:
+  - `CI / Build and Unit Tests`
+  - `Gemini Hard Guard / Adversary Agent`
+  - `Gemini Hard Guard / Architecture Agent`

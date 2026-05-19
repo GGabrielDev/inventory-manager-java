@@ -29,8 +29,7 @@ public class AuditService {
         if (author == null) return null;
         try {
             Long id = Long.parseLong(author);
-            if (userCache != null && userCache.containsKey(id)) return userCache.get(id);
-            // Optimization: if cache exists but ID missing, resolve individually but only if not too many
+            if (userCache != null) return userCache.getOrDefault(id, "User #" + id);
             return userRepository.findById(id).map(com.inventorymanager.backend.domain.User::getUsername).orElse("User #" + id);
         } catch (Exception e) {
             return author;

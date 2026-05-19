@@ -45,22 +45,33 @@ public class AuditView {
         VBox.setVgrow(table, Priority.ALWAYS);
 
         fetchBtn.setOnAction(e -> {
-            if (entityType.getValue() == null) {
+            String type = entityType.getValue();
+            String idStr = entityId.getText();
+            if (type == null) {
                 UIUtils.showWarningPopup("Input Error", "Please select type");
                 return;
             }
-            try {
-                String path = "audit-logs/" + entityType.getValue();
-                if (entityId.getText() != null && !entityId.getText().isBlank()) path += "/" + entityId.getText();
-                
-                Map<String, Object> response = context.apiClient().get(path);
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
-                
-                updateTable(table, data);
-            } catch (Exception ex) { 
-                UIUtils.showErrorPopup(context.bundle().getString("audit.error"), "Failed to fetch logs", ex); 
-            }
+            fetchBtn.setDisable(true);
+            new Thread(() -> {
+                try {
+                    String path = "audit-logs/" + type;
+                    if (idStr != null && !idStr.isBlank()) path += "/" + idStr;
+                    
+                    Map<String, Object> response = context.apiClient().get(path);
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
+                    
+                    Platform.runLater(() -> {
+                        updateTable(table, data);
+                        fetchBtn.setDisable(false);
+                    });
+                } catch (Exception ex) { 
+                    Platform.runLater(() -> {
+                        UIUtils.showErrorPopup(context.bundle().getString("audit.error"), "Failed to fetch logs", ex); 
+                        fetchBtn.setDisable(false);
+                    });
+                }
+            }).start();
         });
         
         root.getChildren().addAll(title, controls, table);

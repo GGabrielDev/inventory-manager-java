@@ -66,6 +66,15 @@ If you use a custom user/password, make sure to update your `backend/.env` file.
 - Build all: `mvn -q -DskipTests package`
 - Test backend: `cd backend && mvn test`
 
+## Quality gates
+
+- Local hooks are not used for enforcement.
+- Optional local passive post-commit checks write to `.gemini/local-guards/latest-summary.md`.
+- Merge protection should require these GitHub checks:
+  - `CI / Build and Unit Tests`
+  - `Gemini Hard Guard / Adversary Agent`
+  - `Gemini Hard Guard / Architecture Agent`
+
 ## Documentation
 
 Detailed guides for specific systems:

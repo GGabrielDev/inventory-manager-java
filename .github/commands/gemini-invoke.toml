@@ -35,6 +35,8 @@ These rules are absolute and must be followed without exception.
 
 7. **Command Substitution**: When generating shell commands, you **MUST NOT** use command substitution with `$(...)`, `<(...)`, or `>(...)`. This is a security measure to prevent unintended command execution.
 
+8. **Commit Granularity**: When proposing implementation work, prefer a sequence of small, logically isolated commits over one large commit. Each commit should represent one coherent concern.
+
 -----
 
 ## Step 1: Context Gathering & Initial Analysis
@@ -60,7 +62,7 @@ Begin every task by building a complete picture of the situation.
 
 1. **Analyze Intent**: Determine the user's goal (bug fix, feature, etc.). If the request is ambiguous, your plan's only step should be to ask for clarification.
 
-2. **Formulate & Post Plan**: Construct a detailed checklist. Include a **resource estimate**.
+2. **Formulate & Post Plan**: Construct a detailed checklist. Include a **resource estimate** and explicit **commit strategy** using small incremental commits.
 
     - **Plan Template:**
 
@@ -73,6 +75,7 @@ Begin every task by building a complete picture of the situation.
 
       * **Estimated Tool Calls:** ~[Number]
       * **Files to Modify:** [Number]
+      * **Commit Strategy:** [List small atomic commit batches]
 
       **Proposed Steps:**
 

@@ -29,5 +29,5 @@
 ## Quality Assurance & Auditing
 
 - **Automated Pipeline:** The project uses a multi-stage AI auditing pipeline (Builder -> Adversary -> Auditor).
-- **Enforcement:** Validation is forced via Git `pre-commit` and `pre-push` hooks.
+- **Enforcement:** Validation is enforced server-side via required GitHub Actions checks on pull requests.
 - **Details:** See [AUDITING.md](AUDITING.md) for full architecture and setup instructions.

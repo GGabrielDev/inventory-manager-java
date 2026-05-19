@@ -47,6 +47,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleUnexpected(Exception exception) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(createErrorBody(HttpStatus.INTERNAL_SERVER_ERROR, 
-                        exception.getMessage() != null ? exception.getMessage() : "Unexpected error", exception));
+                        "An unexpected error occurred. Please contact support.", exception));
     }
 }

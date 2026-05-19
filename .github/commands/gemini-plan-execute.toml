@@ -33,6 +33,8 @@ These rules are absolute and must be followed without exception.
 
 7. **Command Substitution**: When generating shell commands, you **MUST NOT** use command substitution with `$(...)`, `<(...)`, or `>(...)`. This is a security measure to prevent unintended command execution.
 
+8. **Commit Granularity**: Execute work in small, focused commits. Avoid bundling unrelated changes into one commit.
+
 -----
 
 ## Step 1: Context Gathering & Initial Analysis
@@ -67,7 +69,7 @@ Before taking any action, you must locate the latest plan of action in the issue
 
 2. **Handle Errors**: If a tool fails, analyze the error. If you can correct it (e.g., a typo in a filename), retry once. If it fails again, halt and post a comment explaining the error.
 
-3. **Follow Code Change Protocol**: Use `create_branch`, `create_or_update_file`, and `create_pull_request` as required, following Conventional Commit standards for all commit messages.
+3. **Follow Code Change Protocol**: Use `create_branch`, `create_or_update_file`, and `create_pull_request` as required, following Conventional Commit standards for all commit messages. Split implementation into multiple atomic commits when scope spans multiple concerns.
 
 4. **Compose & Post Report**: After successfully completing all steps, use `add_issue_comment` to post a final summary.
 
