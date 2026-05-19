@@ -17,10 +17,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * TestController provides diagnostic and heartbeat endpoints for the Inventory Manager Backend.
+ * Diagnostic endpoints for authenticated callers.
  * <p>
- * This controller is primarily used for verifying that the API is responsive,
- * checking system status, and validating connectivity without requiring authentication.
+ * These routes are intentionally auth-gated and are used for liveness checks,
+ * parameter echoing, and lightweight runtime metadata.
  * </p>
  */
 @RestController
@@ -29,13 +29,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class TestController {
 
     /**
-     * Simple health check endpoint to verify that the service is running.
+     * Simple health check endpoint for authenticated callers.
      *
      * @return A map containing the status and current server time.
      */
     @Operation(
         summary = "Health Check",
-        description = "Returns the current status of the application along with the server timestamp.",
+        description = "Returns the current status of the application along with the server timestamp for an authenticated caller.",
         tags = { "Diagnostics" }
     )
     @ApiResponses(value = {
@@ -64,7 +64,7 @@ public class TestController {
      */
     @Operation(
         summary = "Echo Test",
-        description = "Echoes back the provided message parameter to verify parameter passing and connectivity.",
+        description = "Echoes back the provided message parameter to verify parameter passing and connectivity for an authenticated caller.",
         tags = { "Diagnostics" }
     )
     @ApiResponses(value = {
@@ -100,7 +100,7 @@ public class TestController {
      */
     @Operation(
         summary = "System Information",
-        description = "Provides basic information about the running environment (non-sensitive).",
+        description = "Provides basic information about the running environment (non-sensitive) for an authenticated caller.",
         tags = { "Diagnostics" }
     )
     @ApiResponses(value = {

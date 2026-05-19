@@ -14,7 +14,7 @@ To support a high-velocity, "vibe-coded" development workflow, this project empl
 - **Actor:** Headless Copilot adversary runner.
 - **Logic:**
   - Reads branch-scope diff from merge-base with `master`.
-  - Executes adversarial scrutiny.
+  - Fails closed on missing tests for changed logic paths, null/malformed payload handling, RBAC bypass risk, and audit/hierarchy regressions.
   - Writes strict `PASS`/`FAIL` verdict artifact locally.
 - **Enforcement:** Push blocked locally when verdict is `FAIL`.
 
@@ -22,10 +22,10 @@ To support a high-velocity, "vibe-coded" development workflow, this project empl
 - **Trigger:** Local `git push`.
 - **Actor:** Headless Copilot auditor runner.
 - **Logic:**
-  - **RBAC:** Verifies all new Controller methods have `@PreAuthorize`.
-  - **Audit:** Ensures write-path changes preserve JaVers audit integrity.
-  - **UI Style:** Validates JavaFX layouts against `STYLE-GUIDE.md`.
-  - **Integrity:** Checks the Physical Hierarchy (State > Municipality > Parish > Branch).
+  - **RBAC:** Verifies controller methods keep explicit auth gating or stay inside the approved exception list (`/api/auth/login`, `/api/auth/validate`, `/api/auth/me`, `/api/test/*`, and docs endpoints).
+  - **Audit:** Ensures every write-path change preserves JaVers audit integrity and the matching commit call.
+  - **UI Style:** Validates JavaFX layouts against `STYLE-GUIDE.md` when frontend files change.
+  - **Integrity:** Checks the physical hierarchy `State > Municipality > Parish > Branch > Department`.
   - Writes strict `PASS`/`FAIL` verdict artifact locally.
 - **Enforcement:** Push blocked locally when verdict is `FAIL`.
 
