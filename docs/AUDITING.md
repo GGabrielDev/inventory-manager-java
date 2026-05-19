@@ -49,6 +49,7 @@ To support a high-velocity, "vibe-coded" development workflow, this project empl
 - **Checks:**
   - `mvn -q -DskipTests clean compile`
   - `mvn -q -pl backend test`
+  - Headless Copilot adversary + auditor checks (`tools/hooks/run-copilot-prepush-guards.sh`)
 - **Behavior:** Push is blocked when any check fails.
 
 ## Local Setup
@@ -65,7 +66,7 @@ Each push also runs the local Java pre-push gate.
 ## Bypassing
 
 - Do not bypass local hooks with `--no-verify`; keep checks active in normal workflow.
-- Hard checks run server-side in GitHub Actions and must pass before merge.
+- CI and Gemini Hard Guard run on pull requests and should remain required for merge.
 - Configure branch protection to require:
   - `CI / Build and Unit Tests`
   - `Gemini Hard Guard / Adversary Agent`

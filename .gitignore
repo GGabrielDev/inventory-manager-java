@@ -13,6 +13,7 @@
 *.log
 
 .gemini/
+.copilot/local-guards/
 gha-creds-*.json
 tools/mcp-server/dist/
 tools/mcp-server/node_modules/
