@@ -29,6 +29,7 @@
 - Before pushing, review recursive headless Copilot pre-push summary at `.copilot/recursive-guards/latest-summary.md` when a push is rejected.
 - Never bypass local hooks/checks with `--no-verify`.
 - For pre-push failures, rerun recursive Copilot guard after fixes until PASS or max attempts reached.
+- Do not edit guard scripts or instruction files as a workaround once they are confirmed working; fix project code/tests first.
 - Follow the CI/CD pipeline rules: all new work must go into a separate branch, pass tests in `ci.yml`, and be merged via PR to trigger `release.yml` for changelog and artifact generation.
 - Do not push directly into `master` unless for extremely minor changes or emergency hotfixes.
 - Always reference and adhere to the project's style guidelines (e.g., `docs/STYLE-GUIDE.md`) when planning or programming UI components.

@@ -3,14 +3,17 @@
 set -euo pipefail
 
 ROOT_DIR=$(git rev-parse --show-toplevel)
-MAX_ATTEMPTS="${1:-3}"
+MAX_ATTEMPTS="${1:-${COPILOT_RECURSIVE_MAX_ATTEMPTS:-3}}"
+COPILOT_BIN="${COPILOT_BIN:-copilot}"
+BASE_REF="${COPILOT_BASE_REF:-master}"
+BASE_REMOTE="${COPILOT_BASE_REMOTE:-origin}"
 
 if ! [[ "${MAX_ATTEMPTS}" =~ ^[0-9]+$ ]] || [ "${MAX_ATTEMPTS}" -lt 1 ]; then
   echo "Invalid attempt count: ${MAX_ATTEMPTS}" >&2
   exit 1
 fi
 
-if ! command -v copilot >/dev/null 2>&1; then
+if ! command -v "${COPILOT_BIN}" >/dev/null 2>&1; then
   echo "Copilot CLI not found. Install/login Copilot CLI before pushing."
   exit 1
 fi
@@ -20,32 +23,47 @@ RUN_DIR="${ROOT_DIR}/.copilot/recursive-guards/${RUN_ID}"
 mkdir -p "${RUN_DIR}"
 
 STATUS_SNAPSHOT="${RUN_DIR}/status-snapshot.txt"
-WORKTREE_DIFF="${RUN_DIR}/worktree.diff"
-HEAD_DIFF="${RUN_DIR}/head.diff"
+BRANCH_DIFF="${RUN_DIR}/branch.diff"
+BASE_GAP_DIFF="${RUN_DIR}/base-gap.diff"
 SUMMARY_FILE="${RUN_DIR}/summary.md"
 LATEST_SUMMARY="${ROOT_DIR}/.copilot/recursive-guards/latest-summary.md"
 LATEST_POINTER="${ROOT_DIR}/.copilot/recursive-guards/latest-run.txt"
 
-ADVERSARY_PROMPT_FILE="${ROOT_DIR}/.agents/prompts/local-prepush-copilot-adversary.md"
-AUDITOR_PROMPT_FILE="${ROOT_DIR}/.agents/prompts/local-prepush-copilot-auditor.md"
+ADVERSARY_PROMPT_FILE="${COPILOT_RECURSIVE_ADVERSARY_PROMPT_FILE:-${ROOT_DIR}/.agents/prompts/local-prepush-copilot-adversary.md}"
+AUDITOR_PROMPT_FILE="${COPILOT_RECURSIVE_AUDITOR_PROMPT_FILE:-${ROOT_DIR}/.agents/prompts/local-prepush-copilot-auditor.md}"
+
+resolve_base_commit() {
+  if git -C "${ROOT_DIR}" rev-parse --verify "${BASE_REMOTE}/${BASE_REF}" >/dev/null 2>&1; then
+    git -C "${ROOT_DIR}" rev-parse "${BASE_REMOTE}/${BASE_REF}"
+    return 0
+  fi
+
+  if git -C "${ROOT_DIR}" rev-parse --verify "${BASE_REF}" >/dev/null 2>&1; then
+    git -C "${ROOT_DIR}" rev-parse "${BASE_REF}"
+    return 0
+  fi
+
+  echo "Unable to resolve base ref '${BASE_REMOTE}/${BASE_REF}' or '${BASE_REF}'." >&2
+  exit 1
+}
+
+BASE_COMMIT="$(resolve_base_commit)"
+MERGE_BASE="$(git -C "${ROOT_DIR}" merge-base HEAD "${BASE_COMMIT}")"
 
 snapshot_scope() {
   {
     echo "## git status --short"
     git -C "${ROOT_DIR}" status --short
     echo
-    echo "## git diff HEAD"
-    git -C "${ROOT_DIR}" diff HEAD
+    echo "## git diff ${MERGE_BASE}..HEAD"
+    git -C "${ROOT_DIR}" diff "${MERGE_BASE}..HEAD"
+    echo
+    echo "## git diff HEAD..${BASE_COMMIT}"
+    git -C "${ROOT_DIR}" diff "HEAD..${BASE_COMMIT}"
   } > "${STATUS_SNAPSHOT}"
 
-  git -C "${ROOT_DIR}" diff > "${WORKTREE_DIFF}"
-
-  if git -C "${ROOT_DIR}" rev-parse --verify HEAD^ >/dev/null 2>&1; then
-    git -C "${ROOT_DIR}" diff HEAD^..HEAD > "${HEAD_DIFF}"
-  else
-    EMPTY_TREE=$(git -C "${ROOT_DIR}" hash-object -t tree /dev/null)
-    git -C "${ROOT_DIR}" diff "${EMPTY_TREE}..HEAD" > "${HEAD_DIFF}"
-  fi
+  git -C "${ROOT_DIR}" diff "${MERGE_BASE}..HEAD" > "${BRANCH_DIFF}"
+  git -C "${ROOT_DIR}" diff "HEAD..${BASE_COMMIT}" > "${BASE_GAP_DIFF}"
 }
 
 run_guard() {
@@ -74,24 +92,39 @@ EOF
   prompt_text=$(cat "${prompt_file}")
 
   echo "▶ ${guard_name}: running headless Copilot check..."
-  copilot -p "${prompt_text}
+  "${COPILOT_BIN}" -p "${prompt_text}
 
 Execution context:
 - Repository root: ${ROOT_DIR}
+- Base ref: ${BASE_REMOTE}/${BASE_REF}
+- Base commit: ${BASE_COMMIT}
+- Merge base: ${MERGE_BASE}
 - Status snapshot: ${STATUS_SNAPSHOT}
-- Worktree diff: ${WORKTREE_DIFF}
-- HEAD diff: ${HEAD_DIFF}
+- Branch diff vs base: ${BRANCH_DIFF}
+- Base gap diff: ${BASE_GAP_DIFF}
 - Status output path: ${status_file}
 - Report output path: ${report_file}
 - Attempt directory: ${attempt_dir}
 
 Instructions:
 - Read files from given paths.
-- Treat snapshot as current source of truth.
+- Treat merge-base snapshot as current source of truth.
+- Compare against base branch, not just last commit.
 - Write ONLY PASS or FAIL to status output path.
 - Write concise markdown report to report output path.
 - Do not modify repository files.
-" --add-dir "${ROOT_DIR}" --allow-all-tools --allow-all-paths --no-ask-user --silent 2>&1 | tee "${raw_log_file}" || true
+" --add-dir "${ROOT_DIR}" --add-dir "${RUN_DIR}" \
+  --allow-tool="shell(cat)" \
+  --allow-tool="shell(tee)" \
+  --allow-tool="shell(printf)" \
+  --allow-tool="shell(test)" \
+  --allow-tool="shell(sed)" \
+  --allow-tool="shell(grep)" \
+  --allow-tool="shell(head)" \
+  --allow-tool="shell(tail)" \
+  --allow-tool="shell(tr)" \
+  --allow-tool="shell(git:*)" \
+  --no-ask-user --silent 2>&1 | tee "${raw_log_file}" || true
 
   if [ ! -f "${status_file}" ]; then
     echo "FAIL" > "${status_file}"
@@ -123,8 +156,12 @@ while [ "${attempt}" -le "${MAX_ATTEMPTS}" ]; do
   ADVERSARY_ATTEMPT_DIR="${ATTEMPT_DIR}/adversary"
   AUDITOR_ATTEMPT_DIR="${ATTEMPT_DIR}/auditor"
 
-  run_guard "Copilot Adversary" "${ADVERSARY_PROMPT_FILE}" "${ADVERSARY_ATTEMPT_DIR}"
-  run_guard "Copilot Auditor" "${AUDITOR_PROMPT_FILE}" "${AUDITOR_ATTEMPT_DIR}"
+  if ! run_guard "Copilot Adversary" "${ADVERSARY_PROMPT_FILE}" "${ADVERSARY_ATTEMPT_DIR}"; then
+    overall_pass=0
+  fi
+  if ! run_guard "Copilot Auditor" "${AUDITOR_PROMPT_FILE}" "${AUDITOR_ATTEMPT_DIR}"; then
+    overall_pass=0
+  fi
 
   ADVERSARY_VERDICT=$(cat "${ADVERSARY_ATTEMPT_DIR}/status.txt")
   AUDITOR_VERDICT=$(cat "${AUDITOR_ATTEMPT_DIR}/status.txt")
@@ -137,8 +174,8 @@ while [ "${attempt}" -le "${MAX_ATTEMPTS}" ]; do
 
 ### Artifacts
 - Status snapshot: \`${STATUS_SNAPSHOT}\`
-- Worktree diff: \`${WORKTREE_DIFF}\`
-- HEAD diff: \`${HEAD_DIFF}\`
+- Branch diff: \`${BRANCH_DIFF}\`
+- Base gap diff: \`${BASE_GAP_DIFF}\`
 - Adversary report: \`${ADVERSARY_ATTEMPT_DIR}/report.md\`
 - Auditor report: \`${AUDITOR_ATTEMPT_DIR}/report.md\`
 EOF

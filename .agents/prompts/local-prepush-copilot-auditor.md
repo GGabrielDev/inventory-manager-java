@@ -21,3 +21,4 @@ Output requirements:
 Constraints:
 - Do not modify repository files.
 - Operate only on push-scope context provided.
+- Do not edit guard scripts or instruction files as a workaround once they are confirmed working; fix project code/tests first.
