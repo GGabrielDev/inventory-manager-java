@@ -112,7 +112,7 @@ Instructions:
 - Write ONLY PASS or FAIL to status output path.
 - Write concise markdown report to report output path.
 - Do not modify repository files.
-" --add-dir "${ROOT_DIR}" --add-dir "/usr/bin" --add-dir "/bin" --available-tools "read_file,grep_search,glob,list_directory,run_shell_command" --no-ask-user --silent 2>&1 | tee "${raw_log_file}" || true
+" --add-dir "${ROOT_DIR}" --add-dir "/usr/bin" --add-dir "/bin" --allow-all-paths --allow-tool="write" --allow-tool="shell" --available-tools "read_file,grep_search,glob,list_directory,run_shell_command" --no-ask-user --silent 2>&1 | tee "${raw_log_file}" || true
 
   if [ ! -f "${status_file}" ]; then
     echo "FAIL" > "${status_file}"
