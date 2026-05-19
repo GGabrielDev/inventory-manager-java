@@ -6,23 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.inventorymanager.frontend.api.ApiClient;
 import java.util.List;
 import java.util.Map;
-import javafx.application.Platform;
-import javafx.stage.Stage;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class DesktopUiAuthorizationTest {
 
-    @BeforeAll
-    static void initJfx() {
-        try {
-            Platform.startup(() -> {});
-        } catch (IllegalStateException e) {
-            // Toolkit already initialized
-        }
-    }
-
-    // Creating a subclass of ApiClient to avoid Mockito issues
     static class MockApiClient extends ApiClient {
         private final Map<String, Object> mockMeData;
 
@@ -37,7 +24,6 @@ public class DesktopUiAuthorizationTest {
         }
     }
 
-    // Creating a mock ConfigManager to avoid issues with mocking
     static class MockConfigManager extends ConfigManager {
         @Override
         public String getLanguage() { return "en"; }
@@ -49,7 +35,7 @@ public class DesktopUiAuthorizationTest {
     void testIsAdminRequiresAllCorePermissions() throws Exception {
         MockApiClient mockClient = new MockApiClient(Map.of(
             "roles", List.of("admin"),
-            "permissions", List.of("create_user", "get_audit_logs", "create_branch", "create_department") // Missing some
+            "permissions", List.of("create_user", "get_audit_logs", "create_branch", "create_department")
         ));
         
         DesktopUi ui = new DesktopUi(null, mockClient, new MockConfigManager());
@@ -60,7 +46,7 @@ public class DesktopUiAuthorizationTest {
         try {
             method.invoke(ui);
         } catch (Exception e) {
-            // Expected since we are not fully initializing the UI
+            // Expected
         }
 
         java.lang.reflect.Field field = DesktopUi.class.getDeclaredField("isAdmin");
@@ -77,7 +63,7 @@ public class DesktopUiAuthorizationTest {
             "permissions", List.of(
                 "get_audit_logs", "create_branch", "create_department", "create_category", 
                 "create_user", "create_role", "create_permission", "create_state", 
-                "create_municipality", "create_parish", "some_other_perm"
+                "create_municipality", "create_parish"
             )
         ));
         
