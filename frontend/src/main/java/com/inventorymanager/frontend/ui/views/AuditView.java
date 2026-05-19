@@ -128,7 +128,7 @@ public class AuditView {
                             if ((preVal == null && curVal != null) || (preVal != null && curVal == null) || (preVal != null && !preVal.toString().equals(curVal.toString()))) {
                                 Label l = new Label(key + ": " + (preVal != null && !preVal.toString().isBlank() ? preVal : "NONE") + " ➡️ " + (curVal != null && !curVal.toString().isBlank() ? curVal : "DELETED"));
                                 if (preVal != null && curVal != null) l.setStyle("-fx-text-fill: #e67e22; -fx-font-size: 11px;");
-                                else if (curVal == null) l.setStyle("-fx-text-fill: #c0392b; -fx-font-size: 11px;");
+                                else if (curVal == null) l.setStyle("-fx-text-fill: #e74c3c; -fx-font-size: 11px;");
                                 else l.setStyle("-fx-text-fill: #27ae60; -fx-font-size: 11px;");
                                 box.getChildren().add(l);
                             }

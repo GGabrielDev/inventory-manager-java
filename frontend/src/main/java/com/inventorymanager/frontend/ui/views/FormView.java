@@ -59,7 +59,7 @@ public class FormView {
         saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             saveBtn.setDisable(true);
-            String name = nameField.getText();
+            String name = nameField.getText(); if (name.isBlank()) { UIUtils.showWarningPopup("Validation Error", "Name is required"); saveBtn.setDisable(false); return; }
             new Thread(() -> {
                 try {
                     Map<String, Object> payload = Map.of("name", name);
@@ -152,11 +152,11 @@ public class FormView {
         saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             saveBtn.setDisable(true);
-            String name = nameField.getText();
+            String name = nameField.getText(); if (name.isBlank()) { UIUtils.showWarningPopup("Validation Error", "Name is required"); saveBtn.setDisable(false); return; }
             String qty = qtyField.getText();
             String unit = unitCombo.getValue();
-            UIUtils.IdName branch = branchCombo.getValue();
-            UIUtils.IdName dept = deptCombo.getValue();
+            UIUtils.IdName branch = branchCombo.getValue(); if (branch == null) { UIUtils.showWarningPopup("Validation Error", "Branch is required"); saveBtn.setDisable(false); return; }
+            UIUtils.IdName dept = deptCombo.getValue(); if (dept == null) { UIUtils.showWarningPopup("Validation Error", "Department is required"); saveBtn.setDisable(false); return; }
             
             new Thread(() -> {
                 try {
@@ -282,7 +282,7 @@ public class FormView {
         saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             saveBtn.setDisable(true);
-            String name = nameField.getText();
+            String name = nameField.getText(); if (name.isBlank()) { UIUtils.showWarningPopup("Validation Error", "Name is required"); saveBtn.setDisable(false); return; }
             String addr = addrArea.getText();
             UIUtils.IdName s = stateCombo.getValue();
             UIUtils.IdName m = muniCombo.getValue();
@@ -348,8 +348,8 @@ public class FormView {
         saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             saveBtn.setDisable(true);
-            String name = nameField.getText();
-            UIUtils.IdName branch = branchCombo.getValue();
+            String name = nameField.getText(); if (name.isBlank()) { UIUtils.showWarningPopup("Validation Error", "Name is required"); saveBtn.setDisable(false); return; }
+            UIUtils.IdName branch = branchCombo.getValue(); if (branch == null) { UIUtils.showWarningPopup("Validation Error", "Branch is required"); saveBtn.setDisable(false); return; }
             new Thread(() -> {
                 try {
                     Map<String, Object> payload = Map.of("name", name, "branchId", branch.id);
@@ -427,9 +427,9 @@ public class FormView {
         saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             saveBtn.setDisable(true);
-            String username = userField.getText();
+            String username = userField.getText(); if (username.isBlank()) { UIUtils.showWarningPopup("Validation Error", "Username is required"); saveBtn.setDisable(false); return; }
             String password = passField.getText();
-            UIUtils.IdName branch = branchCombo.getValue();
+            UIUtils.IdName branch = branchCombo.getValue(); if (branch == null) { UIUtils.showWarningPopup("Validation Error", "Branch is required"); saveBtn.setDisable(false); return; }
             List<Long> roleIds = rolesList.getSelectionModel().getSelectedItems().stream().map(r -> r.id).collect(Collectors.toList());
 
             new Thread(() -> {
@@ -492,8 +492,8 @@ public class FormView {
         saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             saveBtn.setDisable(true);
-            String name = nameField.getText();
-            UIUtils.IdName state = stateCombo.getValue();
+            String name = nameField.getText(); if (name.isBlank()) { UIUtils.showWarningPopup("Validation Error", "Name is required"); saveBtn.setDisable(false); return; }
+            UIUtils.IdName state = stateCombo.getValue(); if (state == null) { UIUtils.showWarningPopup("Validation Error", "State is required"); saveBtn.setDisable(false); return; }
             new Thread(() -> {
                 try {
                     Map<String, Object> payload = Map.of("name", name, "stateId", state.id);
@@ -593,7 +593,7 @@ public class FormView {
         saveBtn.setOnAction(e -> {
             saveBtn.setDisable(true);
             UIUtils.IdName selectedMuni = muniCombo.getValue();
-            String name = nameField.getText();
+            String name = nameField.getText(); if (name.isBlank()) { UIUtils.showWarningPopup("Validation Error", "Name is required"); saveBtn.setDisable(false); return; }
             new Thread(() -> {
                 try {
                     if (selectedMuni == null) throw new Exception("Please select a municipality");
@@ -683,10 +683,10 @@ public class FormView {
         saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             saveBtn.setDisable(true);
-            String name = nameField.getText();
-            String barcode = barcodeField.getText();
-            UIUtils.IdName branch = branchCombo.getValue();
-            UIUtils.IdName dept = deptCombo.getValue();
+            String name = nameField.getText(); if (name.isBlank()) { UIUtils.showWarningPopup("Validation Error", "Name is required"); saveBtn.setDisable(false); return; }
+            String barcode = barcodeField.getText(); if (barcode.isBlank()) { UIUtils.showWarningPopup("Validation Error", "Barcode is required"); saveBtn.setDisable(false); return; }
+            UIUtils.IdName branch = branchCombo.getValue(); if (branch == null) { UIUtils.showWarningPopup("Validation Error", "Branch is required"); saveBtn.setDisable(false); return; }
+            UIUtils.IdName dept = deptCombo.getValue(); if (dept == null) { UIUtils.showWarningPopup("Validation Error", "Department is required"); saveBtn.setDisable(false); return; }
             new Thread(() -> {
                 try {
                     Map<String, Object> payload = Map.of(
@@ -761,9 +761,9 @@ public class FormView {
         saveBtn.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white;");
         saveBtn.setOnAction(e -> {
             saveBtn.setDisable(true);
-            UIUtils.IdName item = itemCombo.getValue();
-            String borrower = borrowerField.getText();
-            String reason = reasonArea.getText();
+            UIUtils.IdName item = itemCombo.getValue(); if (item == null) { UIUtils.showWarningPopup("Validation Error", "Item is required"); saveBtn.setDisable(false); return; }
+            String borrower = borrowerField.getText(); if (borrower.isBlank()) { UIUtils.showWarningPopup("Validation Error", "Borrower is required"); saveBtn.setDisable(false); return; }
+            String reason = reasonArea.getText(); if (reason.isBlank()) { UIUtils.showWarningPopup("Validation Error", "Reason is required"); saveBtn.setDisable(false); return; }
             java.time.LocalDate returnDate = datePicker.getValue();
 
             new Thread(() -> {
