@@ -77,8 +77,7 @@ If you use a custom user/password, make sure to update your `backend/.env` file.
 - Pre-push Copilot summary: `.copilot/recursive-guards/latest-summary.md`.
 - Merge protection should require these GitHub checks:
   - `CI / Build and Unit Tests`
-  - `Gemini Hard Guard / Adversary Agent`
-  - `Gemini Hard Guard / Architecture Agent`
+- `Gemini Hard Guard` is optional/manual (`workflow_dispatch`) when extra remote audit is needed.
 
 ## Documentation
 
