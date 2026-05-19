@@ -60,6 +60,9 @@ public class UserController {
     @PostMapping
     @PreAuthorize("hasAuthority('create_user')")
     public User create(@Valid @RequestBody CrudRequest.UserUpsert request) {
+        if (request == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Request body is required");
+        }
         if (request.password() == null || request.password().isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Password is required for new users");
         }
@@ -83,6 +86,9 @@ public class UserController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('edit_user')")
     public User update(@PathVariable Long id, @Valid @RequestBody CrudRequest.UserUpsert request) {
+        if (request == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Request body is required");
+        }
         User user = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
         Set<Long> previous = user.getRoles().stream().map(Role::getId).collect(Collectors.toSet());
         user.setUsername(request.username());

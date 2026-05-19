@@ -52,6 +52,21 @@ public class UserControllerHostileTest {
         assertTrue(ex.getMessage().contains("roles not found"));
     }
 
+    @Test
+    void testCreateUserWithNullBodyThrows400() {
+        ApiException ex = assertThrows(ApiException.class, () -> userController.create(null));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+        assertEquals("Request body is required", ex.getMessage());
+    }
+
+    @Test
+    void testCreateUserWithMissingPasswordThrows400() {
+        CrudRequest.UserUpsert request = new CrudRequest.UserUpsert("user", null, List.of(), 1L);
+        ApiException ex = assertThrows(ApiException.class, () -> userController.create(request));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+        assertEquals("Password is required for new users", ex.getMessage());
+    }
+
     /**
      * ADVERSARIAL VULNERABILITY: Missing Branch Validation.
      * If branchId is provided, it's looked up. If NOT provided, user.setBranch(null) is called.

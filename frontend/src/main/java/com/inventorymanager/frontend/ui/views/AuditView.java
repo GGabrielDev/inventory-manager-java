@@ -122,11 +122,11 @@ public class AuditView {
                         if (previous != null) allKeys.addAll(previous.keySet());
                         
                         for (Object key : allKeys) {
-                            Object curVal = current.get(key);
-                            Object preVal = previous != null ? previous.get(key) : null;
+                            Object curVal = UIUtils.extractDeepValue(current.get(key));
+                            Object preVal = previous != null ? UIUtils.extractDeepValue(previous.get(key)) : null;
                             
-                            if ((preVal == null && curVal != null) || (preVal != null && curVal == null) || (preVal != null && !preVal.equals(curVal))) {
-                                Label l = new Label(key + ": " + (preVal != null ? preVal : "NONE") + " ➡️ " + (curVal != null ? curVal : "DELETED"));
+                            if ((preVal == null && curVal != null) || (preVal != null && curVal == null) || (preVal != null && !preVal.toString().equals(curVal.toString()))) {
+                                Label l = new Label(key + ": " + (preVal != null && !preVal.toString().isBlank() ? preVal : "NONE") + " ➡️ " + (curVal != null && !curVal.toString().isBlank() ? curVal : "DELETED"));
                                 if (preVal != null && curVal != null) l.setStyle("-fx-text-fill: #e67e22; -fx-font-size: 11px;");
                                 else if (curVal == null) l.setStyle("-fx-text-fill: #c0392b; -fx-font-size: 11px;");
                                 else l.setStyle("-fx-text-fill: #27ae60; -fx-font-size: 11px;");
