@@ -1,41 +1,19 @@
 #!/bin/bash
 
-# Architectural Auditor Pre-Push Hook
-# Purpose: Final gatekeeper for systemic invariants using MCP tools and Auditor persona.
+set -euo pipefail
 
-export PATH=$PATH:/usr/local/bin:/usr/bin:/bin
+ROOT_DIR=$(git rev-parse --show-toplevel)
+cd "${ROOT_DIR}"
 
-echo "🔍 Running Architectural Audit..."
+echo "🔎 Running pre-push Java checks..."
 
-# 1. Pack the current state
-# Using repomix as suggested in the plan.
-npx repomix --ignore "target/, .git/" --output current_state.xml --quiet
+echo "• Compile all modules"
+mvn -q -DskipTests clean compile
 
-# 2. Run Gemini in headless mode with Auditor Rules and MCP server enabled
-# We pipe the state and rules directly.
+echo "• Run backend unit/integration tests"
+mvn -q -pl backend test
 
-echo "DEBUG: Running auditor..."
-cat current_state.xml | gemini --prompt "Act as the Principal Architectural Auditor. 
-Analyze the provided repository state (from stdin) against the Auditor Rules.
-Use the inventory-manager-auditor MCP tools to verify boundaries.
-RULES: $(cat .agents/rules/auditor-rules.md)" --yolo > .gemini_push_result 2>&1
+echo "• Run local recursive Copilot adversary/auditor checks"
+"${ROOT_DIR}/tools/hooks/run-copilot-recursive-guards.sh" 1
 
-RESULT=$(cat .gemini_push_result)
-echo "$RESULT"
-
-# Cleanup
-rm current_state.xml
-rm .gemini_push_result
-
-if [[ "$RESULT" == *"FAIL"* ]]; then
-    echo "❌ Architectural Audit Rejected Push:"
-    echo "$RESULT"
-    exit 1
-elif [[ "$RESULT" == *"PASS"* ]]; then
-    echo "✅ Architectural Audit Passed."
-    exit 0
-else
-    echo "⚠️ Auditor output ambiguous. Please review manually."
-    echo "$RESULT"
-    exit 1
-fi
+echo "✅ Pre-push checks passed."

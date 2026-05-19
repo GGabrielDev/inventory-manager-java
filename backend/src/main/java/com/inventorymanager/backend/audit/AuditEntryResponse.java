@@ -6,6 +6,8 @@ import java.util.Map;
 public record AuditEntryResponse(
         String operation,
         String changedBy,
-        Instant changedAt,
-        Map<String, Object> state
+        String changedByUsername,
+        java.time.Instant changedAt,
+        java.util.Map<String, Object> state,
+        java.util.Map<String, Object> previousState
 ) {}

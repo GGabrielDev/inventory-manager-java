@@ -52,6 +52,9 @@ public class RoleController {
     @PostMapping
     @PreAuthorize("hasAuthority('create_role')")
     public Role create(@Valid @RequestBody CrudRequest.RoleUpsert request) {
+        if (request == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Request body is required");
+        }
         Role role = new Role();
         role.setName(request.name());
         role.setDescription(request.description());
@@ -66,6 +69,9 @@ public class RoleController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('edit_role')")
     public Role update(@PathVariable Long id, @Valid @RequestBody CrudRequest.RoleUpsert request) {
+        if (request == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Request body is required");
+        }
         Role role = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Role not found"));
         Set<Long> previous = role.getPermissions().stream().map(Permission::getId).collect(Collectors.toSet());
         role.setName(request.name());
@@ -97,8 +103,13 @@ public class RoleController {
 
     private Set<Permission> fetchPermissions(java.util.List<Long> permissionIds) {
         if (permissionIds == null || permissionIds.isEmpty()) {
-            return new HashSet<>();
+            return new java.util.HashSet<>();
         }
-        return new HashSet<>(permissionRepository.findAllById(permissionIds));
+        java.util.Set<Long> uniqueIds = new java.util.HashSet<>(permissionIds);
+        java.util.List<Permission> permissions = permissionRepository.findAllById(uniqueIds);
+        if (permissions.size() != uniqueIds.size()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "One or more permissions not found");
+        }
+        return new java.util.HashSet<>(permissions);
     }
 }

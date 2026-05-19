@@ -31,7 +31,7 @@ class ItemRequestWorkflowServiceTest {
         MockitoAnnotations.openMocks(this);
         
         // Dummy AuditService that does nothing to avoid Mockito + Java 25 + Javers issues
-        AuditService dummyAudit = new AuditService(null, null) {
+        AuditService dummyAudit = new AuditService(null, null, null) {
             @Override public void commitCreate(Long actorId, Object entity) {}
             @Override public void commitUpdate(Long actorId, Object entity) {}
             @Override public void commitDelete(Long actorId, Object entity) {}

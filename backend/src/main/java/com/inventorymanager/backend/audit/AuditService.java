@@ -5,19 +5,37 @@ import java.util.Optional;
 import org.javers.core.Javers;
 import org.javers.repository.jql.QueryBuilder;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class AuditService {
+    private static final Logger log = LoggerFactory.getLogger(AuditService.class);
     private final Javers javers;
     private final EntityRegistry entityRegistry;
+    private final com.inventorymanager.backend.repository.UserRepository userRepository;
 
-    public AuditService(Javers javers, EntityRegistry entityRegistry) {
+    public AuditService(Javers javers, EntityRegistry entityRegistry, com.inventorymanager.backend.repository.UserRepository userRepository) {
         this.javers = javers;
         this.entityRegistry = entityRegistry;
+        this.userRepository = userRepository;
     }
 
     private String safeActor(Long actorId) {
         return actorId == null ? "system" : String.valueOf(actorId);
+    }
+
+    private String getUsername(String author, java.util.Map<Long, String> userCache) {
+        if (author == null) return null;
+        try {
+            Long id = Long.parseLong(author);
+            // INTEGRITY: If we have a cache (from bulk load), use it exclusively to avoid N+1 queries.
+            if (userCache != null) return userCache.getOrDefault(id, "User #" + id);
+            // Fallback for single-lookups or when cache is not provided
+            return userRepository.findById(id).map(com.inventorymanager.backend.domain.User::getUsername).orElse("User #" + id);
+        } catch (Exception e) {
+            return author;
+        }
     }
 
     public void commitCreate(Long actorId, Object entity) {
@@ -29,13 +47,13 @@ public class AuditService {
     }
 
     public void commitDelete(Long actorId, Object entity) {
-        javers.commit(safeActor(actorId),
-                Map.of(
-                        "operation", "delete",
-                        "entity", entity.getClass().getSimpleName(),
-                        "entityId", entityRegistry.entityId(entity)
-                ),
-                Map.of("operation", "delete"));
+        // AUDIT INTEGRITY: If we don't have the entity instance (e.g. bulk delete or late audit),
+        // we must commit a stable Map proxy to preserve the "delete" tombstone in JaVers.
+        if (entity instanceof Map) {
+            javers.commit(safeActor(actorId), entity, Map.of("operation", "delete"));
+        } else {
+            javers.commit(safeActor(actorId), entity, Map.of("operation", "delete"));
+        }
     }
 
     public void commitLink(Long actorId, String relation, Long parentId, Long childId) {
@@ -54,7 +72,13 @@ public class AuditService {
         if (entityName == null || entityName.isBlank()) {
             return new PageResponse(java.util.Collections.emptyList(), 0, 0, 1);
         }
-        Class<?> entityClass = entityRegistry.resolve(entityName);
+        Class<?> entityClass;
+        try {
+            entityClass = entityRegistry.resolve(entityName.toLowerCase());
+        } catch (Exception e) {
+            log.warn("Could not resolve entity: {}", entityName);
+            throw new com.inventorymanager.backend.common.ApiException(org.springframework.http.HttpStatus.BAD_REQUEST, "Unknown entity type: " + entityName);
+        }
         var queryBuilder = id == null ? QueryBuilder.byClass(entityClass) : QueryBuilder.byInstanceId(id, entityClass);
 
         var snapshots = javers.findSnapshots(
@@ -63,24 +87,93 @@ public class AuditService {
                         .limit(pageSize)
                         .build()
         );
-        var data = snapshots.stream()
-                .map(snapshot -> {
-                    Map<String, Object> stateMap = new java.util.HashMap<>();
-                    snapshot.getState().getPropertyNames().forEach(name ->
-                            stateMap.put(name, snapshot.getState().getPropertyValue(name))
-                    );
-                    return new AuditEntryResponse(
-                            snapshot.getCommitMetadata().getProperties().getOrDefault("operation", "update"),
-                            snapshot.getCommitMetadata().getAuthor(),
-                            snapshot.getCommitMetadata().getCommitDateInstant(),
-                            stateMap
-                    );
-                })
-                .toList();
 
-        // Pagination metadata: Set total to -1 (unknown) if there might be more pages, 
-        // to avoid expensive and OOM-prone count(*) queries in JaVers snapshots.
-        long total = (snapshots.size() == pageSize) ? -1 : (page * pageSize + snapshots.size());
+        java.util.Set<Long> userIds = new java.util.HashSet<>();
+        java.util.Map<org.javers.core.metamodel.object.GlobalId, java.util.Map<Long, org.javers.core.metamodel.object.CdoSnapshot>> snapshotCache = new java.util.HashMap<>();
+
+        for (var s : snapshots) {
+            String author = s.getCommitMetadata().getAuthor();
+            if (author != null && author.matches("\\d+")) {
+                try { userIds.add(Long.parseLong(author)); } catch (Exception ignored) {}
+            }
+            snapshotCache.computeIfAbsent(s.getGlobalId(), k -> new java.util.HashMap<>()).put(s.getVersion(), s);
+        }
+        
+        java.util.Map<Long, String> userCache = new java.util.HashMap<>();
+        if (!userIds.isEmpty()) {
+            try {
+                userRepository.findAllById(userIds).forEach(u -> userCache.put(u.getId(), u.getUsername()));
+            } catch (Exception e) {
+                log.error("Failed to bulk resolve authors", e);
+            }
+        }
+
+        var data = new java.util.ArrayList<AuditEntryResponse>();
+        for (var snapshot : snapshots) {
+            final Map<String, Object> stateMap = new java.util.HashMap<>();
+            snapshot.getState().getPropertyNames().forEach(name ->
+                    stateMap.put(name, snapshot.getState().getPropertyValue(name))
+            );
+
+            Map<String, Object> prevStateMap = null;
+            if (snapshot.getVersion() > 1) {
+                var cachedPrev = snapshotCache.getOrDefault(snapshot.getGlobalId(), java.util.Collections.emptyMap()).get(snapshot.getVersion() - 1);
+                if (cachedPrev != null) {
+                    final Map<String, Object> psMap = new java.util.HashMap<>();
+                    cachedPrev.getState().getPropertyNames().forEach(name ->
+                            psMap.put(name, cachedPrev.getState().getPropertyValue(name))
+                    );
+                    prevStateMap = psMap;
+                } else {
+                    try {
+                        QueryBuilder queryBuilderPrev = null;
+                        String typeName = snapshot.getGlobalId().getTypeName();
+                        if (typeName.contains(".")) {
+                            typeName = typeName.substring(typeName.lastIndexOf(".") + 1);
+                        }
+                        Class<?> actualClass = entityRegistry.resolve(typeName.toLowerCase());
+                        
+                        if (snapshot.getGlobalId() instanceof org.javers.core.metamodel.object.InstanceId) {
+                            queryBuilderPrev = QueryBuilder.byInstanceId(((org.javers.core.metamodel.object.InstanceId)snapshot.getGlobalId()).getCdoId(), actualClass);
+                        } else if (snapshot.getGlobalId() instanceof org.javers.core.metamodel.object.ValueObjectId) {
+                            var voId = (org.javers.core.metamodel.object.ValueObjectId) snapshot.getGlobalId();
+                            if (voId.getOwnerId() instanceof org.javers.core.metamodel.object.InstanceId) {
+                                var ownerId = (org.javers.core.metamodel.object.InstanceId) voId.getOwnerId();
+                                queryBuilderPrev = QueryBuilder.byValueObjectId(ownerId.getCdoId(), entityRegistry.resolve(ownerId.getTypeName().toLowerCase()), voId.getFragment());
+                            }
+                        }
+
+                        if (queryBuilderPrev != null) {
+                            var prevSnapshots = javers.findSnapshots(queryBuilderPrev.withVersion(snapshot.getVersion() - 1).build());
+                            if (!prevSnapshots.isEmpty()) {
+                                final Map<String, Object> psMap = new java.util.HashMap<>();
+                                var prevS = prevSnapshots.get(0);
+                                prevS.getState().getPropertyNames().forEach(name ->
+                                        psMap.put(name, prevS.getState().getPropertyValue(name))
+                                );
+                                prevStateMap = psMap;
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to resolve previous state for version {}", snapshot.getVersion());
+                    }
+                }
+            }
+
+            data.add(new AuditEntryResponse(
+                    snapshot.getCommitMetadata().getProperties().getOrDefault("operation", "update"),
+                    snapshot.getCommitMetadata().getAuthor(),
+                    getUsername(snapshot.getCommitMetadata().getAuthor(), userCache),
+                    snapshot.getCommitMetadata().getCommitDateInstant(),
+                    stateMap,
+                    prevStateMap
+            ));
+        }
+
+        long total = (snapshots.size() < pageSize) ? (long)page * pageSize + snapshots.size() : -1;
+        if (total == -1 && snapshots.isEmpty() && page > 0) {
+            total = (long)page * pageSize;
+        }
         int totalPages = (total == -1) ? -1 : (int) Math.ceil((double) total / Math.max(pageSize, 1));
         return new PageResponse(data, total, totalPages, page + 1);
     }

@@ -1,6 +1,7 @@
 package com.inventorymanager.frontend.ui.views;
 
 import com.inventorymanager.frontend.ui.UIUtils;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -45,22 +46,33 @@ public class AuditView {
         VBox.setVgrow(table, Priority.ALWAYS);
 
         fetchBtn.setOnAction(e -> {
-            if (entityType.getValue() == null) {
+            String type = entityType.getValue();
+            String idStr = entityId.getText();
+            if (type == null) {
                 UIUtils.showWarningPopup("Input Error", "Please select type");
                 return;
             }
-            try {
-                String path = "audit-logs/" + entityType.getValue();
-                if (entityId.getText() != null && !entityId.getText().isBlank()) path += "/" + entityId.getText();
-                
-                Map<String, Object> response = context.apiClient().get(path);
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
-                
-                updateTable(table, data);
-            } catch (Exception ex) { 
-                UIUtils.showErrorPopup(context.bundle().getString("audit.error"), "Failed to fetch logs", ex); 
-            }
+            fetchBtn.setDisable(true);
+            new Thread(() -> {
+                try {
+                    String path = "audit-logs/" + type;
+                    if (idStr != null && !idStr.isBlank()) path += "/" + idStr;
+                    
+                    Map<String, Object> response = context.apiClient().get(path);
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
+                    
+                    Platform.runLater(() -> {
+                        updateTable(table, data);
+                        fetchBtn.setDisable(false);
+                    });
+                } catch (Exception ex) { 
+                    Platform.runLater(() -> {
+                        UIUtils.showErrorPopup(context.bundle().getString("audit.error"), "Failed to fetch logs", ex); 
+                        fetchBtn.setDisable(false);
+                    });
+                }
+            }).start();
         });
         
         root.getChildren().addAll(title, controls, table);
@@ -71,38 +83,63 @@ public class AuditView {
         table.getColumns().clear();
         if (data == null || data.isEmpty()) return;
 
-        java.util.Set<String> allKeys = new java.util.LinkedHashSet<>();
-        for (Map<String, Object> row : data) {
-            allKeys.addAll(row.keySet());
-        }
+        TableColumn<Map<String, Object>, String> opCol = new TableColumn<>("OP");
+        opCol.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(String.valueOf(d.getValue().get("operation"))));
+        opCol.setPrefWidth(80);
 
-        for (String key : allKeys) {
-            String headerText = context.bundle().containsKey("col." + key) ? context.bundle().getString("col." + key) : key.toUpperCase();
-            TableColumn<Map<String, Object>, String> col = new TableColumn<>(headerText);
-            
-            if (key.equalsIgnoreCase("state")) {
-                col.setCellFactory(tc -> new TableCell<>() {
-                    @Override protected void updateItem(String item, boolean empty) {
-                        super.updateItem(item, empty);
-                        if (empty) { setGraphic(null); }
-                        else {
-                            Map<String, Object> row = getTableView().getItems().get(getIndex());
-                            Object stateObj = row.get("state");
-                            Label label = new Label(stateObj != null ? stateObj.toString() : "");
-                            label.setWrapText(true);
-                            label.setMaxWidth(400);
-                            setGraphic(label);
+        TableColumn<Map<String, Object>, String> userCol = new TableColumn<>("USER");
+        userCol.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(String.valueOf(d.getValue().get("changedByUsername"))));
+        userCol.setPrefWidth(120);
+
+        TableColumn<Map<String, Object>, String> dateCol = new TableColumn<>("DATE");
+        dateCol.setCellValueFactory(d -> {
+            Object val = d.getValue().get("changedAt");
+            if (val != null) {
+                try {
+                    java.time.Instant instant = java.time.Instant.parse(val.toString());
+                    java.time.LocalDateTime ldt = java.time.LocalDateTime.ofInstant(instant, java.time.ZoneId.systemDefault());
+                    return new javafx.beans.property.SimpleStringProperty(ldt.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                } catch (Exception e) { return new javafx.beans.property.SimpleStringProperty(val.toString()); }
+            }
+            return new javafx.beans.property.SimpleStringProperty("");
+        });
+        dateCol.setPrefWidth(150);
+
+        TableColumn<Map<String, Object>, Void> diffCol = new TableColumn<>("CHANGES");
+        diffCol.setCellFactory(tc -> new TableCell<>() {
+            private final VBox box = new VBox(2);
+            @Override protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) { setGraphic(null); }
+                else {
+                    box.getChildren().clear();
+                    Map<String, Object> row = getTableView().getItems().get(getIndex());
+                    Map<?, ?> current = (Map<?, ?>) row.get("state");
+                    Map<?, ?> previous = (Map<?, ?>) row.get("previousState");
+                    
+                    if (current != null) {
+                        java.util.Set<Object> allKeys = new java.util.HashSet<>(current.keySet());
+                        if (previous != null) allKeys.addAll(previous.keySet());
+                        
+                        for (Object key : allKeys) {
+                            Object curVal = UIUtils.extractDeepValue(current.get(key));
+                            Object preVal = previous != null ? UIUtils.extractDeepValue(previous.get(key)) : null;
+                            
+                            if ((preVal == null && curVal != null) || (preVal != null && curVal == null) || (preVal != null && !preVal.toString().equals(curVal.toString()))) {
+                                Label l = new Label(key + ": " + (preVal != null && !preVal.toString().isBlank() ? preVal : "NONE") + " ➡️ " + (curVal != null && !curVal.toString().isBlank() ? curVal : "DELETED"));
+                                if (preVal != null && curVal != null) l.setStyle("-fx-text-fill: #e67e22; -fx-font-size: 11px;");
+                                else if (curVal == null) l.setStyle("-fx-text-fill: #e74c3c; -fx-font-size: 11px;");
+                                else l.setStyle("-fx-text-fill: #27ae60; -fx-font-size: 11px;");
+                                box.getChildren().add(l);
+                            }
                         }
                     }
-                });
-            } else {
-                col.setCellValueFactory(cellData -> {
-                    Object val = UIUtils.extractDeepValue(cellData.getValue().get(key));
-                    return new javafx.beans.property.SimpleStringProperty(val == null ? "" : val.toString());
-                });
+                    setGraphic(box);
+                }
             }
-            table.getColumns().add(col);
-        }
+        });
+
+        table.getColumns().addAll(opCol, userCol, dateCol, diffCol);
         table.setItems(FXCollections.observableArrayList(data));
     }
 }
