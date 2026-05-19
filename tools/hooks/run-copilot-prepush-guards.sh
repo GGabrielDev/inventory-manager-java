@@ -59,7 +59,9 @@ collect_push_scope() {
     elif git -C "${ROOT_DIR}" rev-parse --verify "${local_sha}^" >/dev/null 2>&1; then
       RANGE="${local_sha}^..${local_sha}"
     else
-      RANGE="${local_sha}"
+      # Root commit: compare against empty tree
+      EMPTY_TREE=$(git hash-object -t tree /dev/null)
+      RANGE="${EMPTY_TREE}..${local_sha}"
     fi
 
     if ! git -C "${ROOT_DIR}" diff --name-only "${RANGE}" >> "${CHANGED_FILES_FILE}"; then

@@ -20,12 +20,25 @@ export PATH="${MOCK_BIN}:${PATH}"
 # Mock Git
 cat > "${MOCK_BIN}/git" <<EOF
 #!/bin/bash
-if [ "\$1" == "rev-parse" ] && [ "\$2" == "--show-toplevel" ]; then
+# Log for debugging
+# echo "GIT CALL: \$*" >> "${TEST_TEMP_DIR}/git_log.txt"
+
+ARGS=("\$@")
+# Handle -C
+if [ "\${ARGS[0]}" == "-C" ]; then
+  ARGS=("\${ARGS[@]:2}")
+fi
+
+if [ "\${ARGS[0]}" == "rev-parse" ] && [ "\${ARGS[1]}" == "--show-toplevel" ]; then
   echo "${ROOT_DIR}"
-elif [ "\$1" == "diff" ]; then
-  echo "mock-diff-content"
-elif [ "\$1" == "rev-parse" ]; then
+elif [ "\${ARGS[0]}" == "diff" ]; then
+  echo "mock-diff-content-for-diff \${ARGS[@]:1}"
+elif [ "\${ARGS[0]}" == "rev-parse" ] && [[ "\${ARGS[1]}" == "--verify" ]]; then
+  # Mock no parent for SHA starting with 3
+  if [[ "\${ARGS[2]}" == "3"* ]]; then exit 1; fi
   exit 0
+elif [ "\${ARGS[0]}" == "hash-object" ]; then
+  echo "empty-tree-sha"
 else
   exit 0
 fi
@@ -40,7 +53,6 @@ STATUS_FILE=\$(echo "\$@" | grep -oE 'Status output path: [^ ]+' | cut -d' ' -f4
 REPORT_FILE=\$(echo "\$@" | grep -oE 'Report output path: [^ ]+' | cut -d' ' -f4)
 
 if [ -n "\${STATUS_FILE}" ]; then
-  # Default to PASS for mock
   echo "PASS" > "\${STATUS_FILE}"
 fi
 if [ -n "\${REPORT_FILE}" ]; then
@@ -63,6 +75,17 @@ assert_pass() {
   fi
 }
 
+assert_file_contains() {
+  local file=$1
+  local pattern=$2
+  if ! grep -q "${pattern}" "${file}"; then
+    echo "FAILED: File ${file} does not contain ${pattern}"
+    # echo "Actual content:"
+    # cat "${file}"
+    exit 1
+  fi
+}
+
 echo "Running tests for run-copilot-prepush-guards.sh..."
 
 # 1. Test missing refs file
@@ -75,19 +98,33 @@ REFS_FILE="${TEST_TEMP_DIR}/refs_invalid"
 echo "refs/heads/main invalid-sha refs/heads/main 0000000000000000000000000000000000000000" > "${REFS_FILE}"
 assert_fail "${HOOK_SCRIPT}" "${REFS_FILE}"
 
-# 3. Test empty push (all zero SHAs)
+# 3. Test empty push
 echo "• Test empty push"
 REFS_FILE="${TEST_TEMP_DIR}/refs_empty"
 echo "refs/heads/main 0000000000000000000000000000000000000000 refs/heads/main 0000000000000000000000000000000000000000" > "${REFS_FILE}"
 assert_pass "${HOOK_SCRIPT}" "${REFS_FILE}"
 
-# 4. Test normal push (mocked)
+# 4. Test normal push with artifact verification
 echo "• Test normal push"
 REFS_FILE="${TEST_TEMP_DIR}/refs_normal"
 SHA1=$(printf '1%.0s' {1..40})
 SHA2=$(printf '2%.0s' {1..40})
 echo "refs/heads/main ${SHA1} refs/heads/main ${SHA2}" > "${REFS_FILE}"
-# This should pass if mock works
 assert_pass "${HOOK_SCRIPT}" "${REFS_FILE}"
+
+# Verify latest artifacts
+LATEST_POINTER="${ROOT_DIR}/.copilot/local-guards/latest-pre-push-run.txt"
+LATEST_RUN=$(cat "${LATEST_POINTER}")
+assert_file_contains "${LATEST_RUN}/push.diff" "mock-diff-content-for-diff ${SHA2}..${SHA1}"
+
+# 5. Test root commit (no parent)
+echo "• Test root commit"
+REFS_FILE="${TEST_TEMP_DIR}/refs_root"
+SHA_ROOT=$(printf '3%.0s' {1..40})
+echo "refs/heads/new ${SHA_ROOT} refs/heads/new 0000000000000000000000000000000000000000" > "${REFS_FILE}"
+assert_pass "${HOOK_SCRIPT}" "${REFS_FILE}"
+
+LATEST_RUN=$(cat "${LATEST_POINTER}")
+assert_file_contains "${LATEST_RUN}/push.diff" "mock-diff-content-for-diff empty-tree-sha..${SHA_ROOT}"
 
 echo "✅ All tests passed!"
