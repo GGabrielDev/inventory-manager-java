@@ -32,6 +32,10 @@ is_zero_sha() {
   [[ "$1" =~ ^0+$ ]]
 }
 
+is_valid_sha() {
+  [[ "$1" =~ ^[0-9a-f]{40}$ ]]
+}
+
 collect_push_scope() {
   : > "${CHANGED_FILES_FILE}"
   : > "${DIFF_FILE}"
@@ -41,7 +45,16 @@ collect_push_scope() {
       continue
     fi
 
+    if ! is_valid_sha "${local_sha}"; then
+      echo "Error: Invalid local SHA '${local_sha}'" >&2
+      exit 1
+    fi
+
     if [ -n "${remote_sha:-}" ] && ! is_zero_sha "${remote_sha}"; then
+      if ! is_valid_sha "${remote_sha}"; then
+        echo "Error: Invalid remote SHA '${remote_sha}'" >&2
+        exit 1
+      fi
       RANGE="${remote_sha}..${local_sha}"
     elif git -C "${ROOT_DIR}" rev-parse --verify "${local_sha}^" >/dev/null 2>&1; then
       RANGE="${local_sha}^..${local_sha}"
@@ -49,8 +62,14 @@ collect_push_scope() {
       RANGE="${local_sha}"
     fi
 
-    git -C "${ROOT_DIR}" diff --name-only "${RANGE}" >> "${CHANGED_FILES_FILE}" || true
-    git -C "${ROOT_DIR}" diff "${RANGE}" >> "${DIFF_FILE}" || true
+    if ! git -C "${ROOT_DIR}" diff --name-only "${RANGE}" >> "${CHANGED_FILES_FILE}"; then
+      echo "Error: Failed to collect changed files for range ${RANGE}" >&2
+      exit 1
+    fi
+    if ! git -C "${ROOT_DIR}" diff "${RANGE}" >> "${DIFF_FILE}"; then
+      echo "Error: Failed to collect diff for range ${RANGE}" >&2
+      exit 1
+    fi
     echo >> "${DIFF_FILE}"
   done < "${REFS_FILE}"
 
@@ -93,7 +112,7 @@ Instructions:
 - Write ONLY PASS or FAIL to status output path.
 - Write concise markdown report to report output path.
 - Do not modify repository files.
-" --allow-all-tools --allow-all-paths --no-ask-user --silent 2>&1 | tee "${raw_log_file}" || true
+" --allow-path "${ROOT_DIR}" --allow-path "/usr/bin" --allow-path "/bin" --no-ask-user --silent 2>&1 | tee "${raw_log_file}" || true
 
   if [ ! -f "${status_file}" ]; then
     echo "FAIL" > "${status_file}"
