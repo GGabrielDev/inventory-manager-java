@@ -7,7 +7,7 @@ MAX_ATTEMPTS="${1:-${COPILOT_RECURSIVE_MAX_ATTEMPTS:-3}}"
 COPILOT_BIN="${COPILOT_BIN:-copilot}"
 BASE_REF="${COPILOT_BASE_REF:-master}"
 BASE_REMOTE="${COPILOT_BASE_REMOTE:-origin}"
-GUARD_TIMEOUT_SECONDS="${COPILOT_GUARD_TIMEOUT_SECONDS:-180}"
+GUARD_TIMEOUT_SECONDS="${COPILOT_GUARD_TIMEOUT_SECONDS:-120}"
 
 if ! [[ "${MAX_ATTEMPTS}" =~ ^[0-9]+$ ]] || [ "${MAX_ATTEMPTS}" -lt 1 ]; then
   echo "Invalid attempt count: ${MAX_ATTEMPTS}" >&2
@@ -133,16 +133,8 @@ Instructions:
 - Do not modify repository files.
  - Never edit guard/instruction files to bypass failures.
 " --add-dir "${ROOT_DIR}" --add-dir "${RUN_DIR}" \
-  --allow-tool="shell(cat)" \
-  --allow-tool="shell(tee)" \
-  --allow-tool="shell(printf)" \
-  --allow-tool="shell(test)" \
-  --allow-tool="shell(sed)" \
-  --allow-tool="shell(grep)" \
-  --allow-tool="shell(head)" \
-  --allow-tool="shell(tail)" \
-  --allow-tool="shell(tr)" \
-  --allow-tool="shell(git:*)" \
+  --allow-tool="write" \
+  --allow-tool="shell" \
   --no-ask-user 2>&1 | tee "${raw_log_file}"
     run_exit=${PIPESTATUS[0]}
   else
@@ -169,16 +161,8 @@ Instructions:
 - Do not modify repository files.
 - Never edit guard/instruction files to bypass failures.
 " --add-dir "${ROOT_DIR}" --add-dir "${RUN_DIR}" \
-  --allow-tool="shell(cat)" \
-  --allow-tool="shell(tee)" \
-  --allow-tool="shell(printf)" \
-  --allow-tool="shell(test)" \
-  --allow-tool="shell(sed)" \
-  --allow-tool="shell(grep)" \
-  --allow-tool="shell(head)" \
-  --allow-tool="shell(tail)" \
-  --allow-tool="shell(tr)" \
-  --allow-tool="shell(git:*)" \
+  --allow-tool="write" \
+  --allow-tool="shell" \
   --no-ask-user 2>&1 | tee "${raw_log_file}"
     run_exit=${PIPESTATUS[0]}
   fi
