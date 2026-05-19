@@ -31,6 +31,8 @@ When running the `.jar` file, you can provide configuration in three ways:
 Backend default URL: `http://localhost:4000/api`  
 Frontend API base URL default: `http://localhost:4000/api`
 
+All non-login API routes require a JWT. Most mutating backend routes are also permission-gated with `@PreAuthorize`; the small diagnostics surface under `/api/test/*` stays auth-gated but not permission-gated.
+
 ## PostgreSQL Quickstart
 
 The backend requires a PostgreSQL database. You can set it up quickly using Docker or manually via `psql`.

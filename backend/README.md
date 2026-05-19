@@ -34,5 +34,5 @@ mvn spring-boot:run
 
 ## Inventory operation policy
 
-- Direct item mutations (`POST/PUT/DELETE /items`) are restricted to **admin role**.
-- Operators should mutate inventory through **item request forms** and lifecycle actions.
+- Direct item mutations (`POST/PUT/DELETE /items`) require the matching item permissions (`create_item`, `edit_item`, `delete_item`); the seeded admin role happens to carry them.
+- `GET /auth/validate` and `GET /auth/me` require JWT authentication, and operators should mutate inventory through **item request forms** and lifecycle actions.
