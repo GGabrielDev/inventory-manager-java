@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.8.3...v1.9.0) (2026-05-19)
+
+
+### Features
+
+* Improve parish UI, error handling, filters and audit trail ([#52](https://github.com/GGabrielDev/inventory-manager-java/issues/52)) ([04df7c5](https://github.com/GGabrielDev/inventory-manager-java/commit/04df7c50f6d159b57413937675b1b8689be62fc8))
+
 ## [1.8.3](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.8.2...v1.8.3) (2026-05-12)
 
 
