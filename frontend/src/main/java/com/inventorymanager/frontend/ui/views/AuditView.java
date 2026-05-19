@@ -1,6 +1,7 @@
 package com.inventorymanager.frontend.ui.views;
 
 import com.inventorymanager.frontend.ui.UIUtils;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
