@@ -75,7 +75,7 @@ Default seeded roles:
 - Request records are audited through JaVers commits.
 - Executed inventory changes are also audited (create/update/delete/link/unlink).
 - Changelog query remains available via:
-  - `/api/changelogs/{entity}/{id}`
+  - `/api/audit-logs/{entityName}/{id}`
 
 ## Example request payload
 

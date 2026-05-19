@@ -616,6 +616,19 @@ public class FormView {
         context.viewSetter().accept(root);
     }
 
+    static Map<String, Object> constructBagPayload(boolean isEdit, String name, String barcode, UIUtils.IdName branch, UIUtils.IdName dept) {
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("name", name);
+        payload.put("barcode", barcode);
+        payload.put("branchId", branch.id);
+        payload.put("assignedDepartmentId", dept.id);
+        
+        if (!isEdit) {
+            payload.put("expectedItems", java.util.List.of());
+        }
+        return payload;
+    }
+
     private void showBagUpsertForm(Map<String, Object> rowData) {
         boolean isEdit = rowData != null;
         VBox root = new VBox(20);
@@ -689,13 +702,8 @@ public class FormView {
             UIUtils.IdName dept = deptCombo.getValue(); if (dept == null) { UIUtils.showWarningPopup("Validation Error", "Department is required"); saveBtn.setDisable(false); return; }
             new Thread(() -> {
                 try {
-                    Map<String, Object> payload = Map.of(
-                        "name", name, 
-                        "barcode", barcode,
-                        "branchId", branch.id, 
-                        "assignedDepartmentId", dept.id,
-                        "expectedItems", List.of()
-                    );
+                    Map<String, Object> payload = constructBagPayload(isEdit, name, barcode, branch, dept);
+
                     if (isEdit) {
                         context.apiClient().update("bags", ((Number)rowData.get("id")).longValue(), payload);
                     } else {

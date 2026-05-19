@@ -164,8 +164,15 @@ public class BagController {
         entity.setBarcode(request.barcode());
         entity.setBranch(branchRepository.findById(request.branchId())
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Branch not found")));
-        entity.setAssignedDepartment(departmentRepository.findById(request.assignedDepartmentId())
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Department not found")));
+        
+        com.inventorymanager.backend.domain.Department department = departmentRepository.findById(request.assignedDepartmentId())
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Department not found"));
+        
+        if (department.getBranch() == null || department.getBranch().getId() == null || !department.getBranch().getId().equals(request.branchId())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Department " + department.getName() + " does not belong to the selected branch");
+        }
+        
+        entity.setAssignedDepartment(department);
 
         if (request.expectedItems() != null) {
             Set<BagItem> bagItems = new HashSet<>();

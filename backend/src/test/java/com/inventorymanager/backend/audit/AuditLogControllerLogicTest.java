@@ -9,21 +9,21 @@ import org.mockito.Mockito;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-public class AuditControllerLogicTest {
+public class AuditLogControllerLogicTest {
 
     private MockMvc mockMvc;
     private AuditService auditService;
 
     @BeforeEach
-    public void setUp() {
+    public void setup() {
         auditService = Mockito.mock(AuditService.class);
-        AuditController controller = new AuditController(auditService);
+        AuditLogController controller = new AuditLogController(auditService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
     @Test
     public void testPageSizeUpperBoundary() throws Exception {
-        mockMvc.perform(get("/api/changelogs/Item/1")
+        mockMvc.perform(get("/api/audit-logs/Item/1")
                 .param("pageSize", "200"))
                 .andExpect(status().isOk());
         
@@ -33,7 +33,7 @@ public class AuditControllerLogicTest {
 
     @Test
     public void testPageSizeLowerBoundary() throws Exception {
-        mockMvc.perform(get("/api/changelogs/Item/1")
+        mockMvc.perform(get("/api/audit-logs/Item/1")
                 .param("pageSize", "0"))
                 .andExpect(status().isOk());
         
@@ -43,7 +43,7 @@ public class AuditControllerLogicTest {
 
     @Test
     public void testPageUnderflow() throws Exception {
-        mockMvc.perform(get("/api/changelogs/Item/1")
+        mockMvc.perform(get("/api/audit-logs/Item/1")
                 .param("page", String.valueOf(Integer.MIN_VALUE)))
                 .andExpect(status().isOk());
         

@@ -143,7 +143,7 @@ public class UIUtils {
     public static class IdName {
         public final Long id;
         public final String name;
-        IdName(Long id, String name) { this.id = id; this.name = name; }
+        public IdName(Long id, String name) { this.id = id; this.name = name; }
         @Override public String toString() { return name; }
     }
 }
