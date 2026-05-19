@@ -133,7 +133,6 @@ Instructions:
 - Do not modify repository files.
  - Never edit guard/instruction files to bypass failures.
 " --add-dir "${ROOT_DIR}" --add-dir "${RUN_DIR}" \
-  --effort low \
   --allow-tool="write" \
   --allow-tool="shell" \
   --no-ask-user 2>&1 | tee "${raw_log_file}"
@@ -162,7 +161,6 @@ Instructions:
 - Do not modify repository files.
 - Never edit guard/instruction files to bypass failures.
 " --add-dir "${ROOT_DIR}" --add-dir "${RUN_DIR}" \
-  --effort low \
   --allow-tool="write" \
   --allow-tool="shell" \
   --no-ask-user 2>&1 | tee "${raw_log_file}"
