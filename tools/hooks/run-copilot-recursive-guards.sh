@@ -7,9 +7,15 @@ MAX_ATTEMPTS="${1:-${COPILOT_RECURSIVE_MAX_ATTEMPTS:-3}}"
 COPILOT_BIN="${COPILOT_BIN:-copilot}"
 BASE_REF="${COPILOT_BASE_REF:-master}"
 BASE_REMOTE="${COPILOT_BASE_REMOTE:-origin}"
+GUARD_TIMEOUT_SECONDS="${COPILOT_GUARD_TIMEOUT_SECONDS:-180}"
 
 if ! [[ "${MAX_ATTEMPTS}" =~ ^[0-9]+$ ]] || [ "${MAX_ATTEMPTS}" -lt 1 ]; then
   echo "Invalid attempt count: ${MAX_ATTEMPTS}" >&2
+  exit 1
+fi
+
+if ! [[ "${GUARD_TIMEOUT_SECONDS}" =~ ^[0-9]+$ ]] || [ "${GUARD_TIMEOUT_SECONDS}" -lt 30 ]; then
+  echo "Invalid guard timeout seconds: ${GUARD_TIMEOUT_SECONDS}" >&2
   exit 1
 fi
 
@@ -74,6 +80,8 @@ run_guard() {
   local status_file="${attempt_dir}/status.txt"
   local report_file="${attempt_dir}/report.md"
   local raw_log_file="${attempt_dir}/copilot.raw.log"
+  local run_exit=0
+  local heartbeat_pid=""
 
   mkdir -p "${attempt_dir}"
 
@@ -91,8 +99,18 @@ EOF
   local prompt_text
   prompt_text=$(cat "${prompt_file}")
 
-  echo "▶ ${guard_name}: running headless Copilot check..."
-  "${COPILOT_BIN}" -p "${prompt_text}
+  echo "▶ ${guard_name}: running headless Copilot check (timeout ${GUARD_TIMEOUT_SECONDS}s)..."
+  set +e
+  (
+    while true; do
+      sleep 20
+      echo "⏳ ${guard_name}: still running..." >&2
+    done
+  ) &
+  heartbeat_pid=$!
+
+  if command -v timeout >/dev/null 2>&1; then
+    timeout --signal=TERM --kill-after=20s "${GUARD_TIMEOUT_SECONDS}s" stdbuf -oL -eL "${COPILOT_BIN}" -p "${prompt_text}
 
 Execution context:
 - Repository root: ${ROOT_DIR}
@@ -113,6 +131,7 @@ Instructions:
 - Write ONLY PASS or FAIL to status output path.
 - Write concise markdown report to report output path.
 - Do not modify repository files.
+ - Never edit guard/instruction files to bypass failures.
 " --add-dir "${ROOT_DIR}" --add-dir "${RUN_DIR}" \
   --allow-tool="shell(cat)" \
   --allow-tool="shell(tee)" \
@@ -124,7 +143,56 @@ Instructions:
   --allow-tool="shell(tail)" \
   --allow-tool="shell(tr)" \
   --allow-tool="shell(git:*)" \
-  --no-ask-user --silent 2>&1 | tee "${raw_log_file}" || true
+  --no-ask-user 2>&1 | tee "${raw_log_file}"
+    run_exit=${PIPESTATUS[0]}
+  else
+    stdbuf -oL -eL "${COPILOT_BIN}" -p "${prompt_text}
+
+Execution context:
+- Repository root: ${ROOT_DIR}
+- Base ref: ${BASE_REMOTE}/${BASE_REF}
+- Base commit: ${BASE_COMMIT}
+- Merge base: ${MERGE_BASE}
+- Status snapshot: ${STATUS_SNAPSHOT}
+- Branch diff vs base: ${BRANCH_DIFF}
+- Base gap diff: ${BASE_GAP_DIFF}
+- Status output path: ${status_file}
+- Report output path: ${report_file}
+- Attempt directory: ${attempt_dir}
+
+Instructions:
+- Read files from given paths.
+- Treat merge-base snapshot as current source of truth.
+- Compare against base branch, not just last commit.
+- Write ONLY PASS or FAIL to status output path.
+- Write concise markdown report to report output path.
+- Do not modify repository files.
+- Never edit guard/instruction files to bypass failures.
+" --add-dir "${ROOT_DIR}" --add-dir "${RUN_DIR}" \
+  --allow-tool="shell(cat)" \
+  --allow-tool="shell(tee)" \
+  --allow-tool="shell(printf)" \
+  --allow-tool="shell(test)" \
+  --allow-tool="shell(sed)" \
+  --allow-tool="shell(grep)" \
+  --allow-tool="shell(head)" \
+  --allow-tool="shell(tail)" \
+  --allow-tool="shell(tr)" \
+  --allow-tool="shell(git:*)" \
+  --no-ask-user 2>&1 | tee "${raw_log_file}"
+    run_exit=${PIPESTATUS[0]}
+  fi
+  if [ -n "${heartbeat_pid}" ] && kill -0 "${heartbeat_pid}" >/dev/null 2>&1; then
+    kill "${heartbeat_pid}" >/dev/null 2>&1 || true
+    wait "${heartbeat_pid}" 2>/dev/null || true
+  fi
+  set -e
+
+  if [ "${run_exit}" -eq 124 ] || [ "${run_exit}" -eq 137 ] || [ "${run_exit}" -eq 143 ]; then
+    echo "Guard timed out after ${GUARD_TIMEOUT_SECONDS}s." | tee -a "${raw_log_file}" >&2
+  elif [ "${run_exit}" -ne 0 ]; then
+    echo "Guard process exited with code ${run_exit}." | tee -a "${raw_log_file}" >&2
+  fi
 
   if [ ! -f "${status_file}" ]; then
     echo "FAIL" > "${status_file}"
