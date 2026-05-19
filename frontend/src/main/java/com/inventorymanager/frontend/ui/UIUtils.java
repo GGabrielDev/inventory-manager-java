@@ -43,6 +43,9 @@ public class UIUtils {
                 if (errorMap.containsKey("message") && errorMap.get("message") != null) {
                     displayMessage = String.valueOf(errorMap.get("message"));
                 }
+                if (errorMap.containsKey("details") && errorMap.get("details") != null) {
+                    backendDetails = String.valueOf(errorMap.get("details"));
+                }
                 if (errorMap.containsKey("backendError") && errorMap.get("backendError") != null) {
                     backendDetails = "Backend Error: " + String.valueOf(errorMap.get("backendError"));
                 }
