@@ -17,7 +17,8 @@ public class GlobalExceptionHandlerLogicTest {
         ResponseEntity<Map<String, Object>> response = handler.handleUnexpected(ex);
         
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals("Unexpected error", response.getBody().get("message"));
+        // Updated to match the masked production message
+        assertEquals("An unexpected error occurred. Please contact support.", response.getBody().get("message"));
     }
 
     @Test

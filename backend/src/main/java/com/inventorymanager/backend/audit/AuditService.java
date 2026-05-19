@@ -29,7 +29,8 @@ public class AuditService {
         if (author == null) return null;
         try {
             Long id = Long.parseLong(author);
-            if (userCache != null) return userCache.getOrDefault(id, "User #" + id);
+            if (userCache != null && userCache.containsKey(id)) return userCache.get(id);
+            // Fallback to individual lookup if not in cache (e.g. newly created user or bulk load failed)
             return userRepository.findById(id).map(com.inventorymanager.backend.domain.User::getUsername).orElse("User #" + id);
         } catch (Exception e) {
             return author;
@@ -69,8 +70,6 @@ public class AuditService {
             entityClass = entityRegistry.resolve(entityName.toLowerCase());
         } catch (Exception e) {
             log.warn("Could not resolve entity: {}", entityName);
-            // Adversary requirement: return 400 or handle properly. 
-            // We'll throw an exception that GlobalExceptionHandler can catch.
             throw new com.inventorymanager.backend.common.ApiException(org.springframework.http.HttpStatus.BAD_REQUEST, "Unknown entity type: " + entityName);
         }
         var queryBuilder = id == null ? QueryBuilder.byClass(entityClass) : QueryBuilder.byInstanceId(id, entityClass);
@@ -111,7 +110,6 @@ public class AuditService {
 
             Map<String, Object> prevStateMap = null;
             if (snapshot.getVersion() > 1) {
-                // INTEGRITY vs PERFORMANCE: Only resolve if in current page to avoid N+1 query disaster.
                 var cachedPrev = snapshotCache.getOrDefault(snapshot.getGlobalId(), java.util.Collections.emptyMap()).get(snapshot.getVersion() - 1);
                 if (cachedPrev != null) {
                     final Map<String, Object> psMap = new java.util.HashMap<>();
@@ -119,6 +117,38 @@ public class AuditService {
                             psMap.put(name, cachedPrev.getState().getPropertyValue(name))
                     );
                     prevStateMap = psMap;
+                } else {
+                    try {
+                        QueryBuilder queryBuilderPrev = null;
+                        String typeName = snapshot.getGlobalId().getTypeName();
+                        if (typeName.contains(".")) {
+                            typeName = typeName.substring(typeName.lastIndexOf(".") + 1);
+                        }
+                        Class<?> actualClass = entityRegistry.resolve(typeName.toLowerCase());
+                        
+                        if (snapshot.getGlobalId() instanceof org.javers.core.metamodel.object.InstanceId) {
+                            queryBuilderPrev = QueryBuilder.byInstanceId(((org.javers.core.metamodel.object.InstanceId)snapshot.getGlobalId()).getCdoId(), actualClass);
+                        } else if (snapshot.getGlobalId() instanceof org.javers.core.metamodel.object.ValueObjectId) {
+                            var voId = (org.javers.core.metamodel.object.ValueObjectId) snapshot.getGlobalId();
+                            if (voId.getOwnerId() instanceof org.javers.core.metamodel.object.InstanceId) {
+                                var ownerId = (org.javers.core.metamodel.object.InstanceId) voId.getOwnerId();
+                                queryBuilderPrev = QueryBuilder.byValueObjectId(ownerId.getCdoId(), actualClass, voId.getFragment());
+                            }
+                        }
+
+                        if (queryBuilderPrev != null) {
+                            var prevSnapshots = javers.findSnapshots(queryBuilderPrev.withVersion(snapshot.getVersion() - 1).build());
+                            if (!prevSnapshots.isEmpty()) {
+                                final Map<String, Object> psMap = new java.util.HashMap<>();
+                                prevSnapshots.get(0).getState().getPropertyNames().forEach(name ->
+                                        psMap.put(name, prevSnapshots.get(0).getState().getPropertyValue(name))
+                                );
+                                prevStateMap = psMap;
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to resolve previous state for version {}", snapshot.getVersion());
+                    }
                 }
             }
 
