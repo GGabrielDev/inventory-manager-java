@@ -37,10 +37,19 @@ class BranchAuditIntegrityTest {
         currentUser = Mockito.mock(CurrentUser.class);
         Mockito.when(currentUser.id()).thenReturn(1L);
 
-        // Mock lookups
-        Mockito.when(stateRepository.findById(any())).thenReturn(Optional.of(new com.inventorymanager.backend.domain.State()));
-        Mockito.when(municipalityRepository.findById(any())).thenReturn(Optional.of(new com.inventorymanager.backend.domain.Municipality()));
-        Mockito.when(parishRepository.findById(any())).thenReturn(Optional.of(new com.inventorymanager.backend.domain.Parish()));
+        // Mock lookups with valid hierarchy to satisfy invariants
+        com.inventorymanager.backend.domain.State state = new com.inventorymanager.backend.domain.State();
+        state.setId(1L);
+        com.inventorymanager.backend.domain.Municipality municipality = new com.inventorymanager.backend.domain.Municipality();
+        municipality.setId(1L);
+        municipality.setState(state);
+        com.inventorymanager.backend.domain.Parish parish = new com.inventorymanager.backend.domain.Parish();
+        parish.setId(1L);
+        parish.setMunicipality(municipality);
+
+        Mockito.when(stateRepository.findById(any())).thenReturn(Optional.of(state));
+        Mockito.when(municipalityRepository.findById(any())).thenReturn(Optional.of(municipality));
+        Mockito.when(parishRepository.findById(any())).thenReturn(Optional.of(parish));
 
         controller = new BranchController(
                 branchRepository,

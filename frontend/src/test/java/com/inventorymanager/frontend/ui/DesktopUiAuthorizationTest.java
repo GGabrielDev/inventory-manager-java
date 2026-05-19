@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.inventorymanager.frontend.api.ApiClient;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 public class DesktopUiAuthorizationTest {
@@ -32,56 +33,20 @@ public class DesktopUiAuthorizationTest {
     }
 
     @Test
-    void testIsAdminRequiresAllCorePermissions() throws Exception {
-        MockApiClient mockClient = new MockApiClient(Map.of(
-            "roles", List.of("admin"),
-            "permissions", List.of("create_user", "get_audit_logs", "create_branch", "create_department")
-        ));
-        
-        DesktopUi ui = new DesktopUi(null, mockClient, new MockConfigManager());
-        
-        java.lang.reflect.Method method = DesktopUi.class.getDeclaredMethod("showDashboard");
-        method.setAccessible(true);
-        
-        try {
-            method.invoke(ui);
-        } catch (Exception e) {
-            // Expected
-        }
-
-        java.lang.reflect.Field field = DesktopUi.class.getDeclaredField("isAdmin");
-        field.setAccessible(true);
-        boolean isAdmin = (boolean) field.get(ui);
-        
+    void testIsAdminRequiresAllCorePermissions() {
+        Set<String> permissions = Set.of("create_user", "get_audit_logs", "create_branch", "create_department");
+        boolean isAdmin = DesktopUi.computeIsAdmin(permissions);
         assertFalse(isAdmin, "Should require all core permissions");
     }
 
     @Test
-    void testIsAdminWithAllCorePermissions() throws Exception {
-        MockApiClient mockClient = new MockApiClient(Map.of(
-            "roles", List.of("operator"),
-            "permissions", List.of(
-                "get_audit_logs", "create_branch", "create_department", "create_category", 
-                "create_user", "create_role", "create_permission", "create_state", 
-                "create_municipality", "create_parish"
-            )
-        ));
-        
-        DesktopUi ui = new DesktopUi(null, mockClient, new MockConfigManager());
-        
-        java.lang.reflect.Method method = DesktopUi.class.getDeclaredMethod("showDashboard");
-        method.setAccessible(true);
-        
-        try {
-            method.invoke(ui);
-        } catch (Exception e) {
-            // Expected
-        }
-
-        java.lang.reflect.Field field = DesktopUi.class.getDeclaredField("isAdmin");
-        field.setAccessible(true);
-        boolean isAdmin = (boolean) field.get(ui);
-        
+    void testIsAdminWithAllCorePermissions() {
+        Set<String> permissions = Set.of(
+            "get_audit_logs", "create_branch", "create_department", "create_category", 
+            "create_user", "create_role", "create_permission", "create_state", 
+            "create_municipality", "create_parish"
+        );
+        boolean isAdmin = DesktopUi.computeIsAdmin(permissions);
         assertTrue(isAdmin, "Should be admin when all core permissions are present");
     }
 }

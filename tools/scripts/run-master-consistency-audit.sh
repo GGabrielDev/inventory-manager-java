@@ -10,6 +10,8 @@ CREATE_FIX_BRANCH=0
 IMPLEMENT_FIXES=0
 FORCE=0
 BRANCH_NAME=""
+FOCUS_INPUT=""
+FOCUS_FILE=""
 
 usage() {
   cat <<'EOF'
@@ -18,6 +20,8 @@ Usage: tools/scripts/run-master-consistency-audit.sh [options]
 Options:
   --create-fix-branch [name]  Create fix branch from master after audit.
   --implement-fixes           Let Copilot implement fixes from audit plan.
+  --focus "<text>"            Focus audit on specific problem/regression.
+  --focus-file <path>         Read focus problem statement from file.
   --force                     Skip clean-master guard.
   -h, --help                  Show help.
 
@@ -41,6 +45,22 @@ while [[ $# -gt 0 ]]; do
     --implement-fixes)
       IMPLEMENT_FIXES=1
       ;;
+    --focus)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        echo "--focus requires text input." >&2
+        exit 1
+      fi
+      FOCUS_INPUT="$2"
+      shift
+      ;;
+    --focus-file)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        echo "--focus-file requires a file path." >&2
+        exit 1
+      fi
+      FOCUS_FILE="$2"
+      shift
+      ;;
     --force)
       FORCE=1
       ;;
@@ -62,6 +82,19 @@ if ! command -v "${COPILOT_BIN}" >/dev/null 2>&1; then
   exit 1
 fi
 
+if [[ -n "${FOCUS_INPUT}" && -n "${FOCUS_FILE}" ]]; then
+  echo "Use either --focus or --focus-file, not both." >&2
+  exit 1
+fi
+
+if [[ -n "${FOCUS_FILE}" ]]; then
+  if [[ ! -f "${FOCUS_FILE}" ]]; then
+    echo "Focus file not found: ${FOCUS_FILE}" >&2
+    exit 1
+  fi
+  FOCUS_INPUT="$(cat "${FOCUS_FILE}")"
+fi
+
 CURRENT_BRANCH=$(git branch --show-current)
 if [[ "${FORCE}" -ne 1 ]]; then
   if [[ "${CURRENT_BRANCH}" != "master" ]]; then
@@ -81,6 +114,14 @@ mkdir -p "${RUN_DIR}"
 FINDINGS_FILE="${RUN_DIR}/findings.md"
 PLAN_FILE="${RUN_DIR}/fix-plan.md"
 RAW_LOG_FILE="${RUN_DIR}/audit.raw.log"
+FOCUS_CONTEXT_FILE="${RUN_DIR}/focus-context.md"
+
+if [[ -n "${FOCUS_INPUT}" ]]; then
+  cat > "${FOCUS_CONTEXT_FILE}" <<EOF
+## Focus Problem Statement
+${FOCUS_INPUT}
+EOF
+fi
 
 echo "Running master consistency audit..."
 "${COPILOT_BIN}" -p "
@@ -91,6 +132,15 @@ Analyze current master branch for:
 - RBAC/audit/UI/domain invariant risks
 - missing tests for critical paths
 
+$(if [[ -n "${FOCUS_INPUT}" ]]; then
+  cat <<EOF
+Focused investigation target:
+- ${FOCUS_INPUT}
+- Explicitly explain how this issue could pass existing tests/build gates.
+- Provide concrete missing/weak test and guardrail paths that allowed pass-through.
+EOF
+fi)
+
 Write outputs to exact paths:
 - findings report: ${FINDINGS_FILE}
 - prioritized fix plan: ${PLAN_FILE}
@@ -98,6 +148,8 @@ Write outputs to exact paths:
 Output requirements:
 - findings.md sections: ## Verdict, ## Findings, ## High-Risk Pitfalls, ## Suggested Fixes
 - fix-plan.md sections: ## Objectives, ## Ordered Fix Tasks, ## Test Plan
+- If focus provided, add findings.md section: ## Focused Root Cause Path
+- If focus provided, add fix-plan.md section: ## Focused Regression Shields
 - Keep findings concrete with file paths and line references when possible.
 - Do not modify repository source files in this step.
 " --add-dir "${ROOT_DIR}" --add-dir "${RUN_DIR}" --allow-tool="write" --allow-tool="shell" --no-ask-user 2>&1 | tee "${RAW_LOG_FILE}"
