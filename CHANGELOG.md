@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.10.0...v1.10.1) (2026-05-19)
+
+
+### Bug Fixes
+
+* **consistency:** Enforce validation and align contracts ([#57](https://github.com/GGabrielDev/inventory-manager-java/issues/57)) ([c75b280](https://github.com/GGabrielDev/inventory-manager-java/commit/c75b2806ff2f54e6766010f3f650f0da3e5e275a))
+
 ## [1.10.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.9.0...v1.10.0) (2026-05-19)
 
 
