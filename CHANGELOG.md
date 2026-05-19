@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.9.0...v1.10.0) (2026-05-19)
+
+
+### Features
+
+* Add master audit automation scripts ([#54](https://github.com/GGabrielDev/inventory-manager-java/issues/54)) ([2e58fe1](https://github.com/GGabrielDev/inventory-manager-java/commit/2e58fe19cd2816ac1f8971abcdc98848950d18e3))
+
 ## [1.9.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.8.3...v1.9.0) (2026-05-19)
 
 
