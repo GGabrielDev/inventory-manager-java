@@ -30,7 +30,7 @@ mvn spring-boot:run
 - `GET /auth/me`
 - CRUD: `/users`, `/roles`, `/permissions`, `/departments`, `/categories`, `/items`, `/states`, `/municipalities`, `/parishes`
 - Request workflow: `/item-requests`, `/item-requests/{id}/submit`, `/item-requests/{id}/review`, `/item-requests/{id}/execute`
-- Changelogs: `/changelogs/{entity}/{id}`
+- Audit logs: `/audit-logs/{entityName}/{id}`
 
 ## Inventory operation policy
 

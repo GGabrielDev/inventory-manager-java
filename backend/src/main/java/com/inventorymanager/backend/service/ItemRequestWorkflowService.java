@@ -64,6 +64,10 @@ public class ItemRequestWorkflowService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only pending requests can be reviewed");
         }
 
+        if (nextStatus != ItemRequestStatus.APPROVED && nextStatus != ItemRequestStatus.REJECTED) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid review transition to " + nextStatus);
+        }
+
         request.setStatus(nextStatus);
         request.setReviewedBy(reviewer);
         request.setReviewedAt(java.time.OffsetDateTime.now());

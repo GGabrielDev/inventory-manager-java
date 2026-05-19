@@ -10,14 +10,14 @@ import org.mockito.Mockito;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-class AuditControllerPrivilegeTest {
+class AuditLogControllerPrivilegeTest {
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         AuditService auditService = Mockito.mock(AuditService.class);
-        AuditController controller = new AuditController(auditService);
+        AuditLogController controller = new AuditLogController(auditService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
