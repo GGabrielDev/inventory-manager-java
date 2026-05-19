@@ -47,7 +47,13 @@ public class AuditService {
     }
 
     public void commitDelete(Long actorId, Object entity) {
-        javers.commit(safeActor(actorId), entity, Map.of("operation", "delete"));
+        // AUDIT INTEGRITY: If we don't have the entity instance (e.g. bulk delete or late audit),
+        // we must commit a stable Map proxy to preserve the "delete" tombstone in JaVers.
+        if (entity instanceof Map) {
+            javers.commit(safeActor(actorId), entity, Map.of("operation", "delete"));
+        } else {
+            javers.commit(safeActor(actorId), entity, Map.of("operation", "delete"));
+        }
     }
 
     public void commitLink(Long actorId, String relation, Long parentId, Long childId) {

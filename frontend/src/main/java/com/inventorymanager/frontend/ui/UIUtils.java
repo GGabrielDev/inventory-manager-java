@@ -89,7 +89,13 @@ public class UIUtils {
                 clipboard.setContent(content);
                 copyBtn.setText("✅ Copied!");
             });
-            VBox content = new VBox(10, new Label("Error details:"), textArea, copyBtn, new Label("Please check connection or contact programmer."));
+            VBox content = new VBox(10, 
+                new Label("Error details:"), 
+                new Label("--- Technical Details ---"),
+                textArea, 
+                copyBtn, 
+                new Label("--- Contact Programmer ---"),
+                new Label("Please check connection or contact system administrator."));
             alert.getDialogPane().setContent(content);
             alert.showAndWait();
         });
