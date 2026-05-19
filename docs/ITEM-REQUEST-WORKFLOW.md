@@ -2,14 +2,14 @@
 
 ## Goal
 
-Only **admins** can directly mutate `/api/items` (create/edit/delete).  
-**Operators** must request inventory operations through `/api/item-requests` forms.
+Only callers with the matching item permissions can directly mutate `/api/items` (create/edit/delete); the seeded admin role carries those permissions by default.
+**Operators** should request inventory operations through `/api/item-requests` forms.
 
 ## Coverage model
 
 Supported request types:
 
-- `INBOUND`: New incoming stock. Must target a `Branch`. Resulting items are assigned to the "Inbound" department of that branch.
+- `INBOUND`: New incoming stock. `targetBranchId` is optional; if omitted, execution falls back to the requester'"'"'s branch. Resulting items are assigned to the target branch'"'"'s "Inbound" department unless `targetDepartmentId` is explicitly provided.
 - `MODIFICATION`: Updates metadata or quantity of existing items.
 - `TRANSFER`: Movement of items.
     - **Inter-Branch**: Moving items to a different branch. Targets a `Branch`. Items land in the "Inbound" department of the destination.
@@ -35,7 +35,6 @@ Each request can include **multiple entries**, allowing bulk operations in one w
 ### Direct item handling
 
 - `/api/items` create/update/delete require:
-  - role `ADMIN`
   - corresponding `create_item` / `edit_item` / `delete_item` permissions
 
 ### Request workflow permissions
@@ -60,7 +59,7 @@ Default seeded roles:
 - `POST /api/item-requests`
 - `PUT /api/item-requests/{id}`
 - `POST /api/item-requests/{id}/submit`
-- `POST /api/item-requests/{id}/review` (`decision`: `approve` or `reject`)
+- `POST /api/item-requests/{id}/review` (`decision`: `approve` maps to `APPROVED`; any other value is treated as `REJECTED`)
 - `POST /api/item-requests/{id}/execute`
 
 ## Execution semantics by type
