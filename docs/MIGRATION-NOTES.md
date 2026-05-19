@@ -8,7 +8,7 @@
   - users, roles, permissions
   - departments, categories, items
   - states, municipalities, parishes
-- Changelog endpoint: `/api/changelogs/{entity}/{id}`
+- Audit log endpoint: `/api/audit-logs/{entityName}/{id}`
 
 ## Key stack changes
 

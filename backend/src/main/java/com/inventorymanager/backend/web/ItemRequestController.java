@@ -63,6 +63,9 @@ public class ItemRequestController {
     @PostMapping
     @PreAuthorize("hasAuthority('create_item_request')")
     public ItemRequest create(@Valid @RequestBody CrudRequest.ItemRequestUpsert request) {
+        if (request.entries() == null || request.entries().isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Item request must contain at least one entry");
+        }
         ItemRequest entity = new ItemRequest();
         mapRequestToEntity(request, entity);
         
@@ -74,6 +77,9 @@ public class ItemRequestController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('edit_item_request')")
     public ItemRequest update(@PathVariable Long id, @Valid @RequestBody CrudRequest.ItemRequestUpsert request) {
+        if (request.entries() == null || request.entries().isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Item request must contain at least one entry");
+        }
         ItemRequest entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Request not found"));
         if (entity.getStatus() != ItemRequestStatus.DRAFT) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only draft requests can be edited");
@@ -95,9 +101,18 @@ public class ItemRequestController {
     @PostMapping("/{id}/review")
     @PreAuthorize("hasAuthority('review_item_request')")
     public ItemRequest review(@PathVariable Long id, @Valid @RequestBody CrudRequest.ItemRequestReview review) {
-        ItemRequestStatus nextStatus = review.decision().equalsIgnoreCase("approve") 
-            ? ItemRequestStatus.APPROVED 
-            : ItemRequestStatus.REJECTED;
+        if (review == null || review.decision() == null || review.decision().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Decision is required");
+        }
+        
+        ItemRequestStatus nextStatus;
+        if (review.decision().equalsIgnoreCase("approve")) {
+            nextStatus = ItemRequestStatus.APPROVED;
+        } else if (review.decision().equalsIgnoreCase("reject")) {
+            nextStatus = ItemRequestStatus.REJECTED;
+        } else {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid decision: " + review.decision() + ". Must be 'approve' or 'reject'.");
+        }
         
         ItemRequest saved = workflowService.reviewRequest(id, currentUser.id(), nextStatus, review.comment());
         auditService.commitUpdate(currentUser.id(), saved);

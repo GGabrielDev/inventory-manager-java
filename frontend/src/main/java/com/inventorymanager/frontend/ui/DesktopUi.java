@@ -65,11 +65,18 @@ public class DesktopUi {
     private void showDashboard() throws Exception {
         this.currentUser = apiClient.me();
         @SuppressWarnings("unchecked")
-        List<String> rolesPayload = (List<String>) currentUser.getOrDefault("roles", List.of());
-        Set<String> roles = rolesPayload.stream()
+        List<String> permissionsPayload = (List<String>) currentUser.getOrDefault("permissions", List.of());
+        Set<String> permissions = permissionsPayload.stream()
                 .map(String::toLowerCase)
                 .collect(Collectors.toSet());
-        this.isAdmin = roles.contains("admin");
+        
+        // CONSISTENCY: Require a full mapping of admin permissions to unlock the admin navigation block.
+        List<String> requiredAdminPerms = List.of(
+            "get_audit_logs", "create_branch", "create_department", "create_category", 
+            "create_user", "create_role", "create_permission", "create_state", 
+            "create_municipality", "create_parish"
+        );
+        this.isAdmin = permissions.containsAll(requiredAdminPerms);
 
         mainLayout = new BorderPane();
         contentArea = new StackPane();
