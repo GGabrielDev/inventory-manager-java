@@ -6,6 +6,11 @@ ROOT_DIR=$(git rev-parse --show-toplevel)
 cd "${ROOT_DIR}"
 
 COPILOT_BIN="${COPILOT_BIN:-copilot}"
+COPILOT_CAVEMAN_MODE="${COPILOT_CAVEMAN_MODE:-full}"
+if ! [[ "${COPILOT_CAVEMAN_MODE}" =~ ^(lite|full|ultra|wenyan-lite|wenyan-full|wenyan-ultra)$ ]]; then 
+  echo "Invalid COPILOT_CAVEMAN_MODE: ${COPILOT_CAVEMAN_MODE}" >&2; 
+  exit 1; 
+fi
 FORCE=0
 
 usage() {
@@ -60,6 +65,9 @@ RAW_LOG_FILE="${RUN_DIR}/reinforcement.raw.log"
 
 echo "Running docs reinforcement + adversary markdown overhaul..."
 "${COPILOT_BIN}" -p "
+/caveman ${COPILOT_CAVEMAN_MODE}
+Use caveman mode strictly (terse, no filler). If command unsupported, still follow caveman style instructions.
+
 You are documentation reinforcement + adversary-rules maintainer.
 
 Scope:

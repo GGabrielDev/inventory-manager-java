@@ -4,6 +4,11 @@ set -euo pipefail
 
 ROOT_DIR=$(git rev-parse --show-toplevel)
 REFS_FILE="${1:-}"
+COPILOT_CAVEMAN_MODE="${COPILOT_CAVEMAN_MODE:-full}"
+if ! [[ "${COPILOT_CAVEMAN_MODE}" =~ ^(lite|full|ultra|wenyan-lite|wenyan-full|wenyan-ultra)$ ]]; then 
+  echo "Invalid COPILOT_CAVEMAN_MODE: ${COPILOT_CAVEMAN_MODE}" >&2; 
+  exit 1; 
+fi
 
 if [ -z "${REFS_FILE}" ] || [ ! -f "${REFS_FILE}" ]; then
   echo "Missing refs file for pre-push guard runner."
@@ -98,9 +103,12 @@ EOF
 
   local prompt_text
   prompt_text=$(cat "${prompt_file}")
+  local caveman_header
+  caveman_header=$'/caveman '"${COPILOT_CAVEMAN_MODE}"$'\nUse caveman mode strictly (terse, no filler). If command unsupported, still follow caveman style instructions.\n'
 
   echo "▶ ${guard_name}: running headless Copilot check..."
-  copilot -p "${prompt_text}
+  copilot -p "${caveman_header}
+${prompt_text}
 
 Execution context:
 - Repository root: ${ROOT_DIR}
