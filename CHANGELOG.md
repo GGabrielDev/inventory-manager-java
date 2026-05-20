@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.11.2](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.11.1...v1.11.2) (2026-05-20)
+
+
+### Bug Fixes
+
+* **persistence:** Resolve municipality edit 500 and enrich error details ([#68](https://github.com/GGabrielDev/inventory-manager-java/issues/68)) ([6bfd8ec](https://github.com/GGabrielDev/inventory-manager-java/commit/6bfd8ec2859290fe3c85091eabf20eedfa75a0c5))
+* **persistence:** Resolve municipality edit 500 and enrich error details ([#69](https://github.com/GGabrielDev/inventory-manager-java/issues/69)) ([8995eb4](https://github.com/GGabrielDev/inventory-manager-java/commit/8995eb4ef7a7011c2faa20ba9614029d41071022))
+* **pipeline:** Harden frontend tests and resolve scene transition bug ([#66](https://github.com/GGabrielDev/inventory-manager-java/issues/66)) ([2546341](https://github.com/GGabrielDev/inventory-manager-java/commit/2546341f0a1b050500f42613f28036b614390820))
+
 ## [1.11.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.11.0...v1.11.1) (2026-05-20)
 
 
