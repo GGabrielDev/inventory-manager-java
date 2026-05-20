@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.11.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.10.1...v1.11.0) (2026-05-20)
+
+
+### Features
+
+* **guards:** Implement auto-remediation and caveman mode validation ([#61](https://github.com/GGabrielDev/inventory-manager-java/issues/61)) ([3224015](https://github.com/GGabrielDev/inventory-manager-java/commit/3224015a833241b72c132341cf1241bbecdc7171))
+
+
+### Bug Fixes
+
+* **frontend:** Resolve startup NPE and harden domain invariants ([#59](https://github.com/GGabrielDev/inventory-manager-java/issues/59)) ([d3bc3f9](https://github.com/GGabrielDev/inventory-manager-java/commit/d3bc3f97d8a6c57c553d2d508b3bfdae0b5db872))
+
 ## [1.10.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.10.0...v1.10.1) (2026-05-19)
 
 
