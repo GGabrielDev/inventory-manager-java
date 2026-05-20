@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.11.0...v1.11.1) (2026-05-20)
+
+
+### Bug Fixes
+
+* **frontend:** Make login asynchronous and surface auth errors ([#62](https://github.com/GGabrielDev/inventory-manager-java/issues/62)) ([c2da096](https://github.com/GGabrielDev/inventory-manager-java/commit/c2da0969c7810a60f0f6cbdab0d742e6f7bb06af))
+
 ## [1.11.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.10.1...v1.11.0) (2026-05-20)
 
 
