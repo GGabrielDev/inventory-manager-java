@@ -62,9 +62,8 @@ public class LoginInteractionTest {
         );
 
         LoginView loginView = new LoginView(context);
-        loginView.setUiThreadExecutor(Runnable::run); // STABILIZATION: Execute immediately on same thread in tests
+        loginView.setUiThreadExecutor(Runnable::run);
         
-        // Call performLogin directly (no DISPLAY needed)
         loginView.performLogin("admin", "password");
         
         boolean reached = latch.await(2, TimeUnit.SECONDS);
