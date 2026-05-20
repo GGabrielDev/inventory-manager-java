@@ -100,9 +100,13 @@ public class DesktopUi {
 
     private void showDashboard() throws Exception {
         this.currentUser = apiClient.me();
+        
         @SuppressWarnings("unchecked")
-        List<String> permissionsPayload = (List<String>) currentUser.getOrDefault("permissions", List.of());
+        List<String> permissionsPayload = SafeExtractor.extract(currentUser, "permissions", List.class)
+                .orElse(List.of());
+        
         Set<String> permissions = permissionsPayload.stream()
+                .map(Object::toString)
                 .map(String::toLowerCase)
                 .collect(Collectors.toSet());
         
@@ -194,7 +198,14 @@ public class DesktopUi {
         new DashboardView(viewContext, globalContext).show();
         
         if (stage != null) {
-            stage.setScene(new Scene(mainLayout, 1366, 900));
+            if (stage.getScene() == null) {
+                stage.setScene(new Scene(mainLayout, 1366, 900));
+            } else {
+                // STABILIZATION: Do NOT recreate Scene if it exists, as mainLayout is already its root
+                stage.setWidth(Math.max(stage.getWidth(), 1366));
+                stage.setHeight(Math.max(stage.getHeight(), 900));
+            }
+            stage.show();
         }
     }
 
@@ -249,7 +260,12 @@ public class DesktopUi {
             try {
                 // 1. Identify bag
                 Map<String, Object> bag = apiClient.get("bags/barcode/" + barcodeField.getText());
-                Long bagId = ((Number) bag.get("id")).longValue();
+                long bagId = SafeExtractor.safeLong(bag, "id", -1L);
+                
+                if (bagId == -1L) {
+                    UIUtils.showWarningPopup("Scan Error", "Bag not found or invalid ID");
+                    return;
+                }
                 
                 // 2. Perform live audit
                 Map<String, Object> audit = apiClient.get("bags/" + bagId + "/audit");

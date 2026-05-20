@@ -135,7 +135,11 @@ public class UIUtils {
     public static ObservableList<IdName> fetchIdNames(ApiClient apiClient, String resource) throws Exception {
         return FXCollections.observableArrayList(
             apiClient.list(resource).stream()
-                .map(m -> new IdName(((Number) m.get("id")).longValue(), m.get("name") != null ? m.get("name").toString() : m.get("username").toString()))
+                .map(m -> {
+                    long id = SafeExtractor.safeLong(m, "id", -1L);
+                    String name = SafeExtractor.safeString(m, "name", SafeExtractor.safeString(m, "username", "Unknown"));
+                    return new IdName(id, name);
+                })
                 .collect(Collectors.toList())
         );
     }
