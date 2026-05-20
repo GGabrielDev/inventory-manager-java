@@ -89,6 +89,7 @@ public class DesktopUi {
     }
 
     static boolean computeIsAdmin(Set<String> permissions) {
+        if (permissions == null) return false;
         // CONSISTENCY: Require a full mapping of admin permissions to unlock the admin navigation block.
         List<String> requiredAdminPerms = List.of(
             "get_audit_logs", "create_branch", "create_department", "create_category", 

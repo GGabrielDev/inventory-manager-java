@@ -99,4 +99,22 @@ class ApiClientTest {
         RecordedRequest authRequest = mockWebServer.takeRequest();
         assertEquals("Bearer abc123", authRequest.getHeader("Authorization"));
     }
+
+    @Test
+    void loginThrowsOnUnauthorized() throws Exception {
+        mockWebServer.enqueue(new MockResponse()
+                .setResponseCode(401)
+                .setBody("{\"message\":\"Invalid credentials\"}"));
+
+        assertThrows(IOException.class, () -> apiClient.login("admin", "wrong"));
+    }
+
+    @Test
+    void loginThrowsOnServerError() throws Exception {
+        mockWebServer.enqueue(new MockResponse()
+                .setResponseCode(500)
+                .setBody("Internal Server Error"));
+
+        assertThrows(IOException.class, () -> apiClient.login("admin", "password"));
+    }
 }

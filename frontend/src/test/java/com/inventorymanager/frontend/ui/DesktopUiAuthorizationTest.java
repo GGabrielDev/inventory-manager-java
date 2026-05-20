@@ -49,4 +49,14 @@ public class DesktopUiAuthorizationTest {
         boolean isAdmin = DesktopUi.computeIsAdmin(permissions);
         assertTrue(isAdmin, "Should be admin when all core permissions are present");
     }
+
+    @Test
+    void testIsAdminHandlesNullPermissions() {
+        assertFalse(DesktopUi.computeIsAdmin(null), "Should be false for null permissions");
+    }
+
+    @Test
+    void testIsAdminHandlesEmptyPermissions() {
+        assertFalse(DesktopUi.computeIsAdmin(java.util.Collections.emptySet()), "Should be false for empty permissions");
+    }
 }
