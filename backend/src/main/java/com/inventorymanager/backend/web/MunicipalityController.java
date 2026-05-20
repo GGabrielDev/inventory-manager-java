@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -56,6 +57,7 @@ public class MunicipalityController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('create_municipality')")
+    @Transactional
     public Municipality create(@Valid @RequestBody CrudRequest.MunicipalityUpsert request) {
         State state = stateRepository.findById(request.stateId())
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "State not found"));
@@ -69,6 +71,7 @@ public class MunicipalityController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('edit_municipality')")
+    @Transactional
     public Municipality update(@PathVariable Long id, @Valid @RequestBody CrudRequest.MunicipalityUpsert request) {
         Municipality entity = repository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Municipality not found"));
@@ -83,6 +86,7 @@ public class MunicipalityController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_municipality')")
+    @Transactional
     public void delete(@PathVariable Long id) {
         Municipality entity = repository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Municipality not found"));
