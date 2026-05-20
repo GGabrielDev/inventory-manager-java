@@ -7,6 +7,10 @@ cd "${ROOT_DIR}"
 
 COPILOT_BIN="${COPILOT_BIN:-copilot}"
 COPILOT_CAVEMAN_MODE="${COPILOT_CAVEMAN_MODE:-full}"
+if ! [[ "${COPILOT_CAVEMAN_MODE}" =~ ^(lite|full|ultra|wenyan-lite|wenyan-full|wenyan-ultra)$ ]]; then 
+  echo "Invalid COPILOT_CAVEMAN_MODE: ${COPILOT_CAVEMAN_MODE}" >&2; 
+  exit 1; 
+fi
 CREATE_FIX_BRANCH=0
 IMPLEMENT_FIXES=0
 FORCE=0

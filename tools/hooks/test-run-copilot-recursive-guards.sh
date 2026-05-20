@@ -80,6 +80,7 @@ make_mock_copilot
 
 export PATH="${TMP_DIR}:$PATH"
 export COPILOT_BIN="copilot"
+export COPILOT_RECURSIVE_AUTO_FIX_ON_FAIL="0"
 
 # case 1: missing prompt file
 if COPILOT_RECURSIVE_ADVERSARY_PROMPT_FILE="${TMP_DIR}/missing-adversary.md" \
@@ -138,3 +139,16 @@ fi
 assert_contains "failed after 2 attempts" "${TMP_DIR}/fail.out"
 
 echo "all recursive guard tests passed"
+
+# case 5: invalid caveman mode rejected
+if COPILOT_RECURSIVE_ADVERSARY_PROMPT_FILE="${TMP_DIR}/adversary.md" \
+  COPILOT_RECURSIVE_AUDITOR_PROMPT_FILE="${TMP_DIR}/auditor.md" \
+  COPILOT_CAVEMAN_MODE="invalid" \
+  MOCK_ATTEMPT_FILE="${TMP_DIR}/attempts-5" \
+  "${SCRIPT}" 1 >/dev/null 2>"${TMP_DIR}/caveman.err"; then
+  echo "invalid caveman mode should fail"
+  exit 1
+fi
+assert_contains "Invalid COPILOT_CAVEMAN_MODE: invalid" "${TMP_DIR}/caveman.err"
+
+echo "all recursive guard tests passed (including caveman validation)"

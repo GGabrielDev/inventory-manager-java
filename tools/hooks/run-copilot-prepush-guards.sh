@@ -5,6 +5,10 @@ set -euo pipefail
 ROOT_DIR=$(git rev-parse --show-toplevel)
 REFS_FILE="${1:-}"
 COPILOT_CAVEMAN_MODE="${COPILOT_CAVEMAN_MODE:-full}"
+if ! [[ "${COPILOT_CAVEMAN_MODE}" =~ ^(lite|full|ultra|wenyan-lite|wenyan-full|wenyan-ultra)$ ]]; then 
+  echo "Invalid COPILOT_CAVEMAN_MODE: ${COPILOT_CAVEMAN_MODE}" >&2; 
+  exit 1; 
+fi
 
 if [ -z "${REFS_FILE}" ] || [ ! -f "${REFS_FILE}" ]; then
   echo "Missing refs file for pre-push guard runner."

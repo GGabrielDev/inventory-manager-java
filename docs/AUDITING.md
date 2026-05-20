@@ -52,6 +52,7 @@ To support a high-velocity, "vibe-coded" development workflow, this project empl
   - Recursive headless Copilot adversary + auditor checks (`tools/hooks/run-copilot-recursive-guards.sh`)
     - Uses merge-base vs `master` as branch context.
 - **Behavior:** Push is blocked when any check fails.
+  - On failure, recursive runner can auto-apply targeted code/test fixes and retry (bounded by max attempts).
 
 ## Local Setup
 

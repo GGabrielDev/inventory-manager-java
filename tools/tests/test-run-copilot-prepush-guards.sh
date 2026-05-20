@@ -128,3 +128,13 @@ LATEST_RUN=$(cat "${LATEST_POINTER}")
 assert_file_contains "${LATEST_RUN}/push.diff" "mock-diff-content-for-diff empty-tree-sha..${SHA_ROOT}"
 
 echo "✅ All tests passed!"
+
+# 6. Test invalid caveman mode
+echo "• Test invalid caveman mode"
+REFS_FILE="${TEST_TEMP_DIR}/refs_caveman"
+echo "refs/heads/main ${SHA1} refs/heads/main ${SHA2}" > "${REFS_FILE}"
+export COPILOT_CAVEMAN_MODE="invalid"
+assert_fail "${HOOK_SCRIPT}" "${REFS_FILE}"
+unset COPILOT_CAVEMAN_MODE
+
+echo "✅ All pre-push tests passed (including caveman validation)!"

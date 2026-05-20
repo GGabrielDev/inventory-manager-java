@@ -8,7 +8,13 @@ COPILOT_BIN="${COPILOT_BIN:-copilot}"
 BASE_REF="${COPILOT_BASE_REF:-master}"
 BASE_REMOTE="${COPILOT_BASE_REMOTE:-origin}"
 GUARD_TIMEOUT_SECONDS="${COPILOT_GUARD_TIMEOUT_SECONDS:-120}"
+REMEDIATION_TIMEOUT_SECONDS="${COPILOT_RECURSIVE_REMEDIATION_TIMEOUT_SECONDS:-180}"
+AUTO_FIX_ON_FAIL="${COPILOT_RECURSIVE_AUTO_FIX_ON_FAIL:-1}"
 COPILOT_CAVEMAN_MODE="${COPILOT_CAVEMAN_MODE:-full}"
+if ! [[ "${COPILOT_CAVEMAN_MODE}" =~ ^(lite|full|ultra|wenyan-lite|wenyan-full|wenyan-ultra)$ ]]; then 
+  echo "Invalid COPILOT_CAVEMAN_MODE: ${COPILOT_CAVEMAN_MODE}" >&2; 
+  exit 1; 
+fi
 
 if ! [[ "${MAX_ATTEMPTS}" =~ ^[0-9]+$ ]] || [ "${MAX_ATTEMPTS}" -lt 1 ]; then
   echo "Invalid attempt count: ${MAX_ATTEMPTS}" >&2
@@ -17,6 +23,16 @@ fi
 
 if ! [[ "${GUARD_TIMEOUT_SECONDS}" =~ ^[0-9]+$ ]] || [ "${GUARD_TIMEOUT_SECONDS}" -lt 30 ]; then
   echo "Invalid guard timeout seconds: ${GUARD_TIMEOUT_SECONDS}" >&2
+  exit 1
+fi
+
+if ! [[ "${REMEDIATION_TIMEOUT_SECONDS}" =~ ^[0-9]+$ ]] || [ "${REMEDIATION_TIMEOUT_SECONDS}" -lt 30 ]; then
+  echo "Invalid remediation timeout seconds: ${REMEDIATION_TIMEOUT_SECONDS}" >&2
+  exit 1
+fi
+
+if ! [[ "${AUTO_FIX_ON_FAIL}" =~ ^[01]$ ]]; then
+  echo "Invalid COPILOT_RECURSIVE_AUTO_FIX_ON_FAIL: ${AUTO_FIX_ON_FAIL} (use 0 or 1)" >&2
   exit 1
 fi
 
@@ -204,10 +220,102 @@ EOF
   fi
 }
 
+run_auto_fix() {
+  local attempt_dir="$1"
+  local adversary_dir="$2"
+  local auditor_dir="$3"
+  local fix_log_file="${attempt_dir}/autofix.raw.log"
+  local fix_summary_file="${attempt_dir}/autofix-summary.md"
+  local fix_exit=0
+
+  local caveman_header
+  caveman_header=$'/caveman '"${COPILOT_CAVEMAN_MODE}"$'\nUse caveman mode strictly (terse, no filler). If command unsupported, still follow caveman style instructions.\n'
+
+  echo "🛠️ Attempt remediation: applying fixes from guard reports (timeout ${REMEDIATION_TIMEOUT_SECONDS}s)..."
+  set +e
+  if command -v timeout >/dev/null 2>&1; then
+    timeout --signal=TERM --kill-after=20s "${REMEDIATION_TIMEOUT_SECONDS}s" stdbuf -oL -eL "${COPILOT_BIN}" -p "${caveman_header}
+You are recursive guard remediation agent.
+Current pre-push attempt failed. Apply code/test fixes so next guard attempt can pass.
+
+Inputs:
+- Repository root: ${ROOT_DIR}
+- Base ref: ${BASE_REMOTE}/${BASE_REF}
+- Base commit: ${BASE_COMMIT}
+- Merge base: ${MERGE_BASE}
+- Status snapshot: ${STATUS_SNAPSHOT}
+- Branch diff vs base: ${BRANCH_DIFF}
+- Base gap diff: ${BASE_GAP_DIFF}
+- Adversary report: ${adversary_dir}/report.md
+- Auditor report: ${auditor_dir}/report.md
+- Adversary verdict: ${adversary_dir}/status.txt
+- Auditor verdict: ${auditor_dir}/status.txt
+- Output summary path: ${fix_summary_file}
+
+Rules:
+- Fix project code/tests only.
+- Never edit guard scripts or instruction/prompt files as workaround.
+- Keep changes minimal and directly tied to reported failures.
+- Do not commit, push, or rewrite history.
+- Write concise remediation summary to output summary path with sections:
+  - ## Changes
+  - ## Why It Fixes Failure
+  - ## Remaining Risks
+" --add-dir "${ROOT_DIR}" --add-dir "${RUN_DIR}" \
+  --allow-tool="write" \
+  --allow-tool="shell" \
+  --no-ask-user 2>&1 | tee "${fix_log_file}"
+    fix_exit=${PIPESTATUS[0]}
+  else
+    stdbuf -oL -eL "${COPILOT_BIN}" -p "${caveman_header}
+You are recursive guard remediation agent.
+Current pre-push attempt failed. Apply code/test fixes so next guard attempt can pass.
+
+Inputs:
+- Repository root: ${ROOT_DIR}
+- Base ref: ${BASE_REMOTE}/${BASE_REF}
+- Base commit: ${BASE_COMMIT}
+- Merge base: ${MERGE_BASE}
+- Status snapshot: ${STATUS_SNAPSHOT}
+- Branch diff vs base: ${BRANCH_DIFF}
+- Base gap diff: ${BASE_GAP_DIFF}
+- Adversary report: ${adversary_dir}/report.md
+- Auditor report: ${auditor_dir}/report.md
+- Adversary verdict: ${adversary_dir}/status.txt
+- Auditor verdict: ${auditor_dir}/status.txt
+- Output summary path: ${fix_summary_file}
+
+Rules:
+- Fix project code/tests only.
+- Never edit guard scripts or instruction/prompt files as workaround.
+- Keep changes minimal and directly tied to reported failures.
+- Do not commit, push, or rewrite history.
+- Write concise remediation summary to output summary path with sections:
+  - ## Changes
+  - ## Why It Fixes Failure
+  - ## Remaining Risks
+" --add-dir "${ROOT_DIR}" --add-dir "${RUN_DIR}" \
+  --allow-tool="write" \
+  --allow-tool="shell" \
+  --no-ask-user 2>&1 | tee "${fix_log_file}"
+    fix_exit=${PIPESTATUS[0]}
+  fi
+  set -e
+
+  if [ "${fix_exit}" -eq 124 ] || [ "${fix_exit}" -eq 137 ] || [ "${fix_exit}" -eq 143 ]; then
+    echo "Remediation timed out after ${REMEDIATION_TIMEOUT_SECONDS}s." | tee -a "${fix_log_file}" >&2
+    return 1
+  fi
+  if [ "${fix_exit}" -ne 0 ]; then
+    echo "Remediation process exited with code ${fix_exit}." | tee -a "${fix_log_file}" >&2
+    return 1
+  fi
+  return 0
+}
+
 snapshot_scope
 
 attempt=1
-overall_pass=1
 while [ "${attempt}" -le "${MAX_ATTEMPTS}" ]; do
   ATTEMPT_DIR="${RUN_DIR}/attempt-${attempt}"
   ADVERSARY_ATTEMPT_DIR="${ATTEMPT_DIR}/adversary"
@@ -245,10 +353,14 @@ EOF
     exit 0
   fi
 
-  overall_pass=0
-  echo "⚠️ Attempt ${attempt} failed. Rerun after fixes or continue to next attempt." >&2
+  echo "⚠️ Attempt ${attempt} failed (Adversary=${ADVERSARY_VERDICT}, Auditor=${AUDITOR_VERDICT})." >&2
 
   if [ "${attempt}" -lt "${MAX_ATTEMPTS}" ]; then
+    if [ "${AUTO_FIX_ON_FAIL}" -eq 1 ]; then
+      run_auto_fix "${ATTEMPT_DIR}" "${ADVERSARY_ATTEMPT_DIR}" "${AUDITOR_ATTEMPT_DIR}" || true
+    else
+      echo "Auto-fix disabled (COPILOT_RECURSIVE_AUTO_FIX_ON_FAIL=0)." >&2
+    fi
     snapshot_scope
   fi
 
