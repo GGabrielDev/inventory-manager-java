@@ -45,8 +45,23 @@ public class DesktopUi {
         this.configManager = configManager;
         loadBundle();
         
+        // STABILIZATION: Initialize core layout containers immediately to prevent startup NPE in setView
+        this.mainLayout = new BorderPane();
+        this.contentArea = new StackPane();
+        this.contentArea.setPadding(new Insets(20));
+        this.contentArea.setStyle("-fx-background-color: white;");
+        this.mainLayout.setCenter(contentArea);
+
+        if (stage != null) {
+            stage.setScene(new Scene(mainLayout, 1024, 768));
+            stage.setTitle(bundle.getString("title.main"));
+        }
+        
         this.viewContext = new ViewContext(apiClient, bundle, configManager, this::setView, this::showLogin, () -> {
-            try { showDashboard(); } catch (Exception ignored) {}
+            try { showDashboard(); } catch (Exception ignored) {
+                // If dashboard fails (e.g. session expired), return to login
+                showLogin();
+            }
         }, this::showSettingsPopup, (title, resource) -> {
             if (formView != null) formView.showUpsertForm(title, resource, null);
         });
@@ -59,7 +74,21 @@ public class DesktopUi {
     }
 
     public void showLogin() {
+        if (stage != null) {
+            mainLayout.setLeft(null); // Hide sidebar during login
+            mainLayout.setTop(null);
+        }
         new LoginView(viewContext).show();
+    }
+
+    static boolean computeIsAdmin(Set<String> permissions) {
+        // CONSISTENCY: Require a full mapping of admin permissions to unlock the admin navigation block.
+        List<String> requiredAdminPerms = List.of(
+            "get_audit_logs", "create_branch", "create_department", "create_category", 
+            "create_user", "create_role", "create_permission", "create_state", 
+            "create_municipality", "create_parish"
+        );
+        return permissions.containsAll(requiredAdminPerms);
     }
 
     private void showDashboard() throws Exception {
@@ -70,18 +99,7 @@ public class DesktopUi {
                 .map(String::toLowerCase)
                 .collect(Collectors.toSet());
         
-        // CONSISTENCY: Require a full mapping of admin permissions to unlock the admin navigation block.
-        List<String> requiredAdminPerms = List.of(
-            "get_audit_logs", "create_branch", "create_department", "create_category", 
-            "create_user", "create_role", "create_permission", "create_state", 
-            "create_municipality", "create_parish"
-        );
-        this.isAdmin = permissions.containsAll(requiredAdminPerms);
-
-        mainLayout = new BorderPane();
-        contentArea = new StackPane();
-        contentArea.setPadding(new Insets(20));
-        contentArea.setStyle("-fx-background-color: white;");
+        this.isAdmin = computeIsAdmin(permissions);
 
         VBox sidebar = new VBox(5);
         sidebar.setPadding(new Insets(10));
@@ -111,7 +129,7 @@ public class DesktopUi {
             sidebar.getChildren().add(createNavGroupLabel(bundle.getString("nav.admin")));
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.audit_logs"), () -> new AuditView(viewContext).show()));
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.branches"), () -> new ResourceView(viewContext, bundle.getString("nav.branches"), "branches").show()));
-            sidebar.getChildren().add(createNavButton(bundle.getString("nav.departments"), () -> new DepartmentView(viewContext).show()));
+            sidebar.getChildren().add(createNavButton(bundle.getString("nav.departments"), () -> new ResourceView(viewContext, bundle.getString("nav.departments"), "departments").show()));
             sidebar.getChildren().add(createNavButton(bundle.getString("nav.categories"), () -> new ResourceView(viewContext, bundle.getString("nav.categories"), "categories").show()));
             
             sidebar.getChildren().add(new Separator());
@@ -164,10 +182,13 @@ public class DesktopUi {
 
         mainLayout.setLeft(sidebarScroll);
         mainLayout.setTop(header);
-        mainLayout.setCenter(contentArea);
-
+        
+        // Show initial view
         new DashboardView(viewContext, globalContext).show();
-        stage.setScene(new Scene(mainLayout, 1366, 900));
+        
+        if (stage != null) {
+            stage.setScene(new Scene(mainLayout, 1366, 900));
+        }
     }
 
     private Button createNavButton(String text, Runnable action) {
@@ -191,8 +212,16 @@ public class DesktopUi {
     }
 
     private void setView(Node node) {
+        // DEFENSIVE: Ensure contentArea is initialized before use
+        if (contentArea == null) {
+            throw new IllegalStateException("UI contentArea not initialized. App lifecycle failure.");
+        }
         contentArea.getChildren().clear();
         contentArea.getChildren().add(node);
+        
+        if (stage != null && !stage.isShowing()) {
+            stage.show();
+        }
     }
 
     private void showBagAuditScanner() {

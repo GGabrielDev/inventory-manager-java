@@ -120,11 +120,28 @@ public class BranchController {
     private void mapRequestToEntity(CrudRequest.BranchUpsert request, Branch entity) {
         entity.setName(request.name());
         entity.setAddress(request.address());
-        entity.setState(stateRepository.findById(request.stateId())
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "State not found")));
-        entity.setMunicipality(municipalityRepository.findById(request.municipalityId())
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Municipality not found")));
-        entity.setParish(parishRepository.findById(request.parishId())
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Parish not found")));
+        
+        com.inventorymanager.backend.domain.State state = stateRepository.findById(request.stateId())
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "State not found"));
+        
+        com.inventorymanager.backend.domain.Municipality municipality = municipalityRepository.findById(request.municipalityId())
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Municipality not found"));
+        
+        com.inventorymanager.backend.domain.Parish parish = parishRepository.findById(request.parishId())
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Parish not found"));
+
+        // INVARIANT: Municipality must belong to the selected State
+        if (!municipality.getState().getId().equals(state.getId())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Municipality " + municipality.getName() + " does not belong to State " + state.getName());
+        }
+
+        // INVARIANT: Parish must belong to the selected Municipality
+        if (!parish.getMunicipality().getId().equals(municipality.getId())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Parish " + parish.getName() + " does not belong to Municipality " + municipality.getName());
+        }
+
+        entity.setState(state);
+        entity.setMunicipality(municipality);
+        entity.setParish(parish);
     }
 }

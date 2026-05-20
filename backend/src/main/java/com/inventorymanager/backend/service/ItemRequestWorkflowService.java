@@ -177,7 +177,10 @@ public class ItemRequestWorkflowService {
                     .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Inbound department not found in target branch"));
             item.setDepartment(targetDept);
         } else if (targetDept != null) {
-            // INTRA-BRANCH TRANSFER
+            // INTRA-BRANCH TRANSFER: Validate target department belongs to current branch
+            if (!targetDept.getBranch().getId().equals(item.getBranch().getId())) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Target department " + targetDept.getName() + " belongs to branch " + targetDept.getBranch().getName() + ", but item is in branch " + item.getBranch().getName());
+            }
             item.setDepartment(targetDept);
         } else {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Transfer requires either a target branch or a target department");
