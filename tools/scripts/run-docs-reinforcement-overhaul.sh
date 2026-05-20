@@ -6,6 +6,7 @@ ROOT_DIR=$(git rev-parse --show-toplevel)
 cd "${ROOT_DIR}"
 
 COPILOT_BIN="${COPILOT_BIN:-copilot}"
+COPILOT_CAVEMAN_MODE="${COPILOT_CAVEMAN_MODE:-full}"
 FORCE=0
 
 usage() {
@@ -60,6 +61,9 @@ RAW_LOG_FILE="${RUN_DIR}/reinforcement.raw.log"
 
 echo "Running docs reinforcement + adversary markdown overhaul..."
 "${COPILOT_BIN}" -p "
+/caveman ${COPILOT_CAVEMAN_MODE}
+Use caveman mode strictly (terse, no filler). If command unsupported, still follow caveman style instructions.
+
 You are documentation reinforcement + adversary-rules maintainer.
 
 Scope:

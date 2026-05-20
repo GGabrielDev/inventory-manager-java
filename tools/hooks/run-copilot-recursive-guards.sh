@@ -8,6 +8,7 @@ COPILOT_BIN="${COPILOT_BIN:-copilot}"
 BASE_REF="${COPILOT_BASE_REF:-master}"
 BASE_REMOTE="${COPILOT_BASE_REMOTE:-origin}"
 GUARD_TIMEOUT_SECONDS="${COPILOT_GUARD_TIMEOUT_SECONDS:-120}"
+COPILOT_CAVEMAN_MODE="${COPILOT_CAVEMAN_MODE:-full}"
 
 if ! [[ "${MAX_ATTEMPTS}" =~ ^[0-9]+$ ]] || [ "${MAX_ATTEMPTS}" -lt 1 ]; then
   echo "Invalid attempt count: ${MAX_ATTEMPTS}" >&2
@@ -98,6 +99,8 @@ EOF
 
   local prompt_text
   prompt_text=$(cat "${prompt_file}")
+  local caveman_header
+  caveman_header=$'/caveman '"${COPILOT_CAVEMAN_MODE}"$'\nUse caveman mode strictly (terse, no filler). If command unsupported, still follow caveman style instructions.\n'
 
   echo "▶ ${guard_name}: running headless Copilot check (timeout ${GUARD_TIMEOUT_SECONDS}s)..."
   set +e
@@ -110,7 +113,8 @@ EOF
   heartbeat_pid=$!
 
   if command -v timeout >/dev/null 2>&1; then
-    timeout --signal=TERM --kill-after=20s "${GUARD_TIMEOUT_SECONDS}s" stdbuf -oL -eL "${COPILOT_BIN}" -p "${prompt_text}
+    timeout --signal=TERM --kill-after=20s "${GUARD_TIMEOUT_SECONDS}s" stdbuf -oL -eL "${COPILOT_BIN}" -p "${caveman_header}
+${prompt_text}
 
 Execution context:
 - Repository root: ${ROOT_DIR}
@@ -138,7 +142,8 @@ Instructions:
   --no-ask-user 2>&1 | tee "${raw_log_file}"
     run_exit=${PIPESTATUS[0]}
   else
-    stdbuf -oL -eL "${COPILOT_BIN}" -p "${prompt_text}
+    stdbuf -oL -eL "${COPILOT_BIN}" -p "${caveman_header}
+${prompt_text}
 
 Execution context:
 - Repository root: ${ROOT_DIR}

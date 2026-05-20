@@ -6,6 +6,7 @@ ROOT_DIR=$(git rev-parse --show-toplevel)
 cd "${ROOT_DIR}"
 
 COPILOT_BIN="${COPILOT_BIN:-copilot}"
+COPILOT_CAVEMAN_MODE="${COPILOT_CAVEMAN_MODE:-full}"
 CREATE_FIX_BRANCH=0
 IMPLEMENT_FIXES=0
 FORCE=0
@@ -125,6 +126,9 @@ fi
 
 echo "Running master consistency audit..."
 "${COPILOT_BIN}" -p "
+/caveman ${COPILOT_CAVEMAN_MODE}
+Use caveman mode strictly (terse, no filler). If command unsupported, still follow caveman style instructions.
+
 You are principal consistency auditor for this repository.
 Analyze current master branch for:
 - cross-module logic inconsistencies
@@ -170,6 +174,9 @@ if [[ "${IMPLEMENT_FIXES}" -eq 1 ]]; then
   IMPLEMENT_LOG="${RUN_DIR}/implement.raw.log"
   echo "Implementing fixes from plan..."
   "${COPILOT_BIN}" -p "
+/caveman ${COPILOT_CAVEMAN_MODE}
+Use caveman mode strictly (terse, no filler). If command unsupported, still follow caveman style instructions.
+
 Read and execute fix plan from: ${PLAN_FILE}
 Apply fixes to repository code incrementally.
 
