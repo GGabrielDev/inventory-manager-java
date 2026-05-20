@@ -98,7 +98,9 @@ public class ResourceView {
                     var items = UIUtils.fetchIdNames(context.apiClient(), "categories");
                     Platform.runLater(() -> catFilter.setItems(items));
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ex) {
+                Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Could not load relationship data for filters", ex));
+            }
         }).start();
 
         root.getChildren().addAll(header, filterBar, table);

@@ -1,5 +1,6 @@
 package com.inventorymanager.frontend.ui.views;
 
+import com.inventorymanager.frontend.ui.SafeExtractor;
 import com.inventorymanager.frontend.ui.UIUtils;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -64,7 +65,7 @@ public class FormView {
                 try {
                     Map<String, Object> payload = Map.of("name", name);
                     if (isEdit) {
-                        context.apiClient().update(resource, ((Number)rowData.get("id")).longValue(), payload);
+                        context.apiClient().update(resource, SafeExtractor.safeLong(rowData, "id", -1L), payload);
                     } else {
                         context.apiClient().create(resource, payload);
                     }
@@ -111,7 +112,7 @@ public class FormView {
                     if (initialReqId == comboRequestId.get()) {
                         branchCombo.setItems(branches);
                         if (isEdit && rowData.get("branch") instanceof Map) {
-                            Long branchId = ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue();
+                            Long branchId = SafeExtractor.safeLong((Map<String, Object>)rowData.get("branch"), "id", -1L);
                             branches.stream().filter(b -> b.id.equals(branchId)).findFirst().ifPresent(branchCombo::setValue);
                         }
                     }
@@ -135,8 +136,8 @@ public class FormView {
                 });
 
                 if (isEdit && rowData.get("department") instanceof Map) {
-                    Long branchId = ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue();
-                    Long deptId = ((Number) ((Map<?,?>)rowData.get("department")).get("id")).longValue();
+                    Long branchId = SafeExtractor.safeLong((Map<String, Object>)rowData.get("branch"), "id", -1L);
+                    Long deptId = SafeExtractor.safeLong((Map<String, Object>)rowData.get("department"), "id", -1L);
                     ObservableList<UIUtils.IdName> depts = UIUtils.fetchIdNames(context.apiClient(), "departments?branchId=" + branchId);
                     Platform.runLater(() -> {
                         if (initialReqId == comboRequestId.get()) {
@@ -168,7 +169,7 @@ public class FormView {
                         "departmentId", dept.id
                     );
                     if (isEdit) {
-                        context.apiClient().update("items", ((Number)rowData.get("id")).longValue(), payload);
+                        context.apiClient().update("items", SafeExtractor.safeLong(rowData, "id", -1L), payload);
                     } else {
                         context.apiClient().create("items", payload);
                     }
@@ -215,7 +216,7 @@ public class FormView {
                     if (initialReqId == comboRequestId.get()) {
                         stateCombo.setItems(states);
                         if (isEdit && rowData.get("state") instanceof Map) {
-                            Long id = ((Number) ((Map<?,?>)rowData.get("state")).get("id")).longValue();
+                            Long id = SafeExtractor.safeLong((Map<String, Object>)rowData.get("state"), "id", -1L);
                             states.stream().filter(s -> s.id.equals(id)).findFirst().ifPresent(stateCombo::setValue);
                         }
                     }
@@ -256,8 +257,8 @@ public class FormView {
                 });
 
                 if (isEdit) {
-                    Long sId = ((Number) ((Map<?,?>)rowData.get("state")).get("id")).longValue();
-                    Long mId = ((Number) ((Map<?,?>)rowData.get("municipality")).get("id")).longValue();
+                    Long sId = SafeExtractor.safeLong((Map<String, Object>)rowData.get("state"), "id", -1L);
+                    Long mId = SafeExtractor.safeLong((Map<String, Object>)rowData.get("municipality"), "id", -1L);
                     
                     ObservableList<UIUtils.IdName> munis = UIUtils.fetchIdNames(context.apiClient(), "municipalities?stateId=" + sId);
                     ObservableList<UIUtils.IdName> parishes = UIUtils.fetchIdNames(context.apiClient(), "parishes?municipalityId=" + mId);
@@ -269,7 +270,7 @@ public class FormView {
                             
                             parishCombo.setItems(parishes);
                             if (rowData.get("parish") instanceof Map) {
-                                Long pId = ((Number) ((Map<?,?>)rowData.get("parish")).get("id")).longValue();
+                                Long pId = SafeExtractor.safeLong((Map<String, Object>)rowData.get("parish"), "id", -1L);
                                 parishes.stream().filter(p -> p.id.equals(pId)).findFirst().ifPresent(parishCombo::setValue);
                             }
                         }
@@ -297,7 +298,7 @@ public class FormView {
                         "parishId", p.id
                     );
                     if (isEdit) {
-                        context.apiClient().update("branches", ((Number)rowData.get("id")).longValue(), payload);
+                        context.apiClient().update("branches", SafeExtractor.safeLong(rowData, "id", -1L), payload);
                     } else {
                         context.apiClient().create("branches", payload);
                     }
@@ -336,7 +337,7 @@ public class FormView {
                     if (initialReqId == comboRequestId.get()) {
                         branchCombo.setItems(branches); 
                         if (isEdit && rowData.get("branch") instanceof Map) {
-                            Long id = ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue();
+                            Long id = SafeExtractor.safeLong((Map<String, Object>)rowData.get("branch"), "id", -1L);
                             branches.stream().filter(b -> b.id.equals(id)).findFirst().ifPresent(branchCombo::setValue);
                         }
                     }
@@ -354,7 +355,7 @@ public class FormView {
                 try {
                     Map<String, Object> payload = Map.of("name", name, "branchId", branch.id);
                     if (isEdit) {
-                        context.apiClient().update("departments", ((Number)rowData.get("id")).longValue(), payload);
+                        context.apiClient().update("departments", SafeExtractor.safeLong(rowData, "id", -1L), payload);
                     } else {
                         context.apiClient().create("departments", payload);
                     }
@@ -404,7 +405,7 @@ public class FormView {
                     if (initialReqId == comboRequestId.get()) {
                         branchCombo.setItems(branches); 
                         if (isEdit && rowData.get("branch") instanceof Map) {
-                            Long id = ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue();
+                            Long id = SafeExtractor.safeLong((Map<String, Object>)rowData.get("branch"), "id", -1L);
                             branches.stream().filter(b -> b.id.equals(id)).findFirst().ifPresent(branchCombo::setValue);
                         }
                         
@@ -413,7 +414,7 @@ public class FormView {
                             List<?> userRoles = (List<?>) rowData.get("roles");
                             for (Object roleObj : userRoles) {
                                 if (roleObj instanceof Map) {
-                                    Long roleId = ((Number) ((Map<?,?>)roleObj).get("id")).longValue();
+                                    Long roleId = SafeExtractor.safeLong((Map<String, Object>)roleObj, "id", -1L);
                                     roles.stream().filter(r -> r.id.equals(roleId)).findFirst().ifPresent(rolesList.getSelectionModel()::select);
                                 }
                             }
@@ -441,7 +442,7 @@ public class FormView {
                     payload.put("roleIds", roleIds);
 
                     if (isEdit) {
-                        context.apiClient().update("users", ((Number)rowData.get("id")).longValue(), payload);
+                        context.apiClient().update("users", SafeExtractor.safeLong(rowData, "id", -1L), payload);
                     } else {
                         context.apiClient().create("users", payload);
                     }
@@ -480,7 +481,7 @@ public class FormView {
                     if (initialReqId == comboRequestId.get()) {
                         stateCombo.setItems(states); 
                         if (isEdit && rowData.get("state") instanceof Map) {
-                            Long id = ((Number) ((Map<?,?>)rowData.get("state")).get("id")).longValue();
+                            Long id = SafeExtractor.safeLong((Map<String, Object>)rowData.get("state"), "id", -1L);
                             states.stream().filter(s -> s.id.equals(id)).findFirst().ifPresent(stateCombo::setValue);
                         }
                     }
@@ -498,7 +499,7 @@ public class FormView {
                 try {
                     Map<String, Object> payload = Map.of("name", name, "stateId", state.id);
                     if (isEdit) {
-                        context.apiClient().update("municipalities", ((Number)rowData.get("id")).longValue(), payload);
+                        context.apiClient().update("municipalities", SafeExtractor.safeLong(rowData, "id", -1L), payload);
                     } else {
                         context.apiClient().create("municipalities", payload);
                     }
@@ -561,7 +562,7 @@ public class FormView {
                 if (isEdit && rowData.get("municipality") instanceof Map) {
                     Map<?,?> muniMap = (Map<?,?>) rowData.get("municipality");
                     if (muniMap.get("state") instanceof Map) {
-                        Long stateId = ((Number) ((Map<?,?>)muniMap.get("state")).get("id")).longValue();
+                        Long stateId = SafeExtractor.safeLong((Map<String, Object>)muniMap.get("state"), "id", -1L);
                         Platform.runLater(() -> {
                             if (initialReqId == comboRequestId.get()) {
                                 states.stream().filter(s -> s.id.equals(stateId)).findFirst().ifPresent(s -> {
@@ -573,7 +574,7 @@ public class FormView {
                                             Object mId = muniMap.get("id");
                                             Platform.runLater(() -> {
                                                 if (mId != null && reqId == comboRequestId.get()) {
-                                                    Long muniId = ((Number) mId).longValue();
+                                                    Long muniId = SafeExtractor.safeLong(Map.of("id", mId), "id", -1L);
                                                     muniCombo.setItems(munis);
                                                     munis.stream().filter(m -> m.id.equals(muniId)).findFirst().ifPresent(muniCombo::setValue);
                                                 }
@@ -599,7 +600,7 @@ public class FormView {
                     if (selectedMuni == null) throw new Exception("Please select a municipality");
                     Map<String, Object> payload = Map.of("name", name, "municipalityId", selectedMuni.id);
                     if (isEdit) {
-                        context.apiClient().update("parishes", ((Number)rowData.get("id")).longValue(), payload);
+                        context.apiClient().update("parishes", SafeExtractor.safeLong(rowData, "id", -1L), payload);
                     } else {
                         context.apiClient().create("parishes", payload);
                     }
@@ -655,7 +656,7 @@ public class FormView {
                     if (initialReqId == comboRequestId.get()) {
                         branchCombo.setItems(branches);
                         if (isEdit && rowData.get("branch") instanceof Map) {
-                            Long id = ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue();
+                            Long id = SafeExtractor.safeLong((Map<String, Object>)rowData.get("branch"), "id", -1L);
                             branches.stream().filter(b -> b.id.equals(id)).findFirst().ifPresent(branchCombo::setValue);
                         }
                     }
@@ -679,8 +680,8 @@ public class FormView {
                 });
                 
                 if (isEdit && rowData.get("assignedDepartment") instanceof Map) {
-                    Long bId = ((Number) ((Map<?,?>)rowData.get("branch")).get("id")).longValue();
-                    Long dId = ((Number) ((Map<?,?>)rowData.get("assignedDepartment")).get("id")).longValue();
+                    Long bId = SafeExtractor.safeLong((Map<String, Object>)rowData.get("branch"), "id", -1L);
+                    Long dId = SafeExtractor.safeLong((Map<String, Object>)rowData.get("assignedDepartment"), "id", -1L);
                     ObservableList<UIUtils.IdName> depts = UIUtils.fetchIdNames(context.apiClient(), "departments?branchId=" + bId);
                     Platform.runLater(() -> {
                         if (initialReqId == comboRequestId.get()) {
@@ -705,7 +706,7 @@ public class FormView {
                     Map<String, Object> payload = constructBagPayload(isEdit, name, barcode, branch, dept);
 
                     if (isEdit) {
-                        context.apiClient().update("bags", ((Number)rowData.get("id")).longValue(), payload);
+                        context.apiClient().update("bags", SafeExtractor.safeLong(rowData, "id", -1L), payload);
                     } else {
                         context.apiClient().create("bags", payload);
                     }
@@ -754,10 +755,10 @@ public class FormView {
                     if (initialReqId == comboRequestId.get()) {
                         itemCombo.setItems(items); 
                         if (isEdit && rowData.get("item") instanceof Map) {
-                            Long id = ((Number) ((Map<?,?>)rowData.get("item")).get("id")).longValue();
+                            Long id = SafeExtractor.safeLong((Map<String, Object>)rowData.get("item"), "id", -1L);
                             items.stream().filter(i -> i.id.equals(id)).findFirst().ifPresent(itemCombo::setValue);
                         } else if (!isEdit && prefill != null && prefill.containsKey("itemId")) {
-                            Long id = ((Number) prefill.get("itemId")).longValue();
+                            Long id = SafeExtractor.safeLong(prefill, "itemId", -1L);
                             items.stream().filter(i -> i.id.equals(id)).findFirst().ifPresent(itemCombo::setValue);
                         }
                     }
@@ -783,7 +784,7 @@ public class FormView {
                         "expectedReturnDate", returnDate.atStartOfDay().atOffset(java.time.ZoneOffset.UTC).toString()
                     );
                     if (isEdit) {
-                        context.apiClient().update("displacements", ((Number)rowData.get("id")).longValue(), payload);
+                        context.apiClient().update("displacements", SafeExtractor.safeLong(rowData, "id", -1L), payload);
                     } else {
                         context.apiClient().create("displacements", payload);
                     }

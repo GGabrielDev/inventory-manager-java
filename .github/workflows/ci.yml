@@ -68,5 +68,8 @@ jobs:
             fi
           fi
 
+      - name: Install UI Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-0 libvlc-dev libpulse0 xvfb
+
       - name: Run Maven Build and Tests
-        run: mvn clean verify
+        run: xvfb-run --auto-servernum mvn clean verify
