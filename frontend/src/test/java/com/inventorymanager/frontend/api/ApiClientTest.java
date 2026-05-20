@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,5 +75,28 @@ class ApiClientTest {
         assertFalse(rolesList.isEmpty());
         assertTrue(rolesList.get(0) instanceof String, "Role element should be a String");
         assertEquals("admin", rolesList.get(0));
+    }
+
+    @Test
+    void loginPostsCredentialsAndStoresToken() throws Exception {
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("{\"token\":\"abc123\"}")
+                .addHeader("Content-Type", "application/json"));
+
+        apiClient.login("admin", "password");
+
+        RecordedRequest request = mockWebServer.takeRequest();
+        assertEquals("POST", request.getMethod());
+        assertEquals("/api/auth/login", request.getPath());
+        String body = request.getBody().readString(StandardCharsets.UTF_8);
+        assertTrue(body.contains("\"username\":\"admin\""));
+        assertTrue(body.contains("\"password\":\"password\""));
+
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("{\"id\":1}")
+                .addHeader("Content-Type", "application/json"));
+        apiClient.me();
+        RecordedRequest authRequest = mockWebServer.takeRequest();
+        assertEquals("Bearer abc123", authRequest.getHeader("Authorization"));
     }
 }
