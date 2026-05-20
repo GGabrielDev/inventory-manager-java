@@ -57,9 +57,16 @@ public class DesktopUi {
             stage.setTitle(bundle.getString("title.main"));
         }
         
+        initViewContext();
+    }
+
+    private void initViewContext() {
         this.viewContext = new ViewContext(apiClient, bundle, configManager, this::setView, this::showLogin, () -> {
-            try { showDashboard(); } catch (Exception ignored) {
-                // If dashboard fails (e.g. session expired), return to login
+            try { 
+                showDashboard(); 
+            } catch (Exception ex) {
+                // STABILIZATION: Surface the error instead of silent fallback
+                UIUtils.showErrorPopup(bundle.getString("login.status.fail"), "Failed to load dashboard after login", ex);
                 showLogin();
             }
         }, this::showSettingsPopup, (title, resource) -> {
@@ -212,16 +219,18 @@ public class DesktopUi {
     }
 
     private void setView(Node node) {
-        // DEFENSIVE: Ensure contentArea is initialized before use
-        if (contentArea == null) {
-            throw new IllegalStateException("UI contentArea not initialized. App lifecycle failure.");
-        }
-        contentArea.getChildren().clear();
-        contentArea.getChildren().add(node);
-        
-        if (stage != null && !stage.isShowing()) {
-            stage.show();
-        }
+        Platform.runLater(() -> {
+            // DEFENSIVE: Ensure contentArea is initialized before use
+            if (contentArea == null) {
+                throw new IllegalStateException("UI contentArea not initialized. App lifecycle failure.");
+            }
+            contentArea.getChildren().clear();
+            contentArea.getChildren().add(node);
+            
+            if (stage != null && !stage.isShowing()) {
+                stage.show();
+            }
+        });
     }
 
     private void showBagAuditScanner() {
@@ -342,6 +351,7 @@ public class DesktopUi {
             configManager.setLanguage(langCombo.getValue());
             this.apiClient = new ApiClient(urlField.getText());
             loadBundle();
+            initViewContext(); // STABILIZATION: Update context and all dependent views/runnables
             settingsStage.close();
             try { showDashboard(); } catch (Exception ex) { UIUtils.showErrorPopup("UI Error", "Could not reload dashboard", ex); }
         });
