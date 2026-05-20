@@ -26,7 +26,6 @@ public class TestControllerSecurityTest {
 
     @Test
     void unauthenticatedAccessToDiagnosticsIsDenied() throws Exception {
-        // Spring Security defaults to 403 Forbidden when unauthenticated and no custom entry point is defined
         mockMvc.perform(get("/api/test/health"))
                .andExpect(status().isForbidden());
                

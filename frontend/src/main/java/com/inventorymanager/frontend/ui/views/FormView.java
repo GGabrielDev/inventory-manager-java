@@ -129,7 +129,7 @@ public class FormView {
                                         deptCombo.setItems(depts);
                                     }
                                 });
-                            } catch (Exception ignored) {}
+                            } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
                         }).start();
                     }
                 });
@@ -145,7 +145,7 @@ public class FormView {
                         }
                     });
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
         }).start();
 
         Button saveBtn = new Button(context.bundle().getString("form.save"));
@@ -233,7 +233,7 @@ public class FormView {
                                        muniCombo.setItems(munis);
                                    }
                                });
-                           } catch (Exception ignored) {}
+                           } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
                        }).start();
                    }
                 });
@@ -250,7 +250,7 @@ public class FormView {
                                        parishCombo.setItems(parishes);
                                    }
                                });
-                           } catch (Exception ignored) {}
+                           } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
                        }).start();
                    }
                 });
@@ -275,7 +275,7 @@ public class FormView {
                         }
                     });
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
         }).start();
 
         Button saveBtn = new Button(context.bundle().getString("form.save"));
@@ -341,7 +341,7 @@ public class FormView {
                         }
                     }
                 });
-            } catch (Exception ignored) {}
+            } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
         }).start();
 
         Button saveBtn = new Button(context.bundle().getString("form.save"));
@@ -420,7 +420,7 @@ public class FormView {
                         }
                     }
                 });
-            } catch (Exception ignored) {}
+            } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
         }).start();
 
         Button saveBtn = new Button(context.bundle().getString("form.save"));
@@ -485,7 +485,7 @@ public class FormView {
                         }
                     }
                 });
-            } catch (Exception ignored) {}
+            } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
         }).start();
 
         Button saveBtn = new Button(context.bundle().getString("form.save"));
@@ -543,7 +543,7 @@ public class FormView {
                                 muniCombo.setItems(munis);
                             }
                         });
-                    } catch (Exception ignored) {}
+                    } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
                 }).start();
             }
         });
@@ -578,14 +578,14 @@ public class FormView {
                                                     munis.stream().filter(m -> m.id.equals(muniId)).findFirst().ifPresent(muniCombo::setValue);
                                                 }
                                             });
-                                        } catch (Exception ignored) {}
+                                        } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
                                     }).start();
                                 });
                             }
                         });
                     }
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
         }).start();
 
         Button saveBtn = new Button(context.bundle().getString("form.save"));
@@ -673,7 +673,7 @@ public class FormView {
                                        deptCombo.setItems(depts);
                                    }
                                });
-                           } catch (Exception ignored) {}
+                           } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
                        }).start();
                    }
                 });
@@ -689,7 +689,7 @@ public class FormView {
                         }
                     });
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
         }).start();
 
         Button saveBtn = new Button(context.bundle().getString("form.save"));
@@ -762,7 +762,7 @@ public class FormView {
                         }
                     }
                 });
-            } catch (Exception ignored) {}
+            } catch (Exception ex) { Platform.runLater(() -> UIUtils.showErrorPopup("Loader Error", "Failed to load relationship data", ex)); }
         }).start();
         
         Button saveBtn = new Button(context.bundle().getString("form.save"));
