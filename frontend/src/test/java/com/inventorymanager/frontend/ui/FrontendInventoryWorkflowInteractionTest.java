@@ -215,67 +215,6 @@ class FrontendInventoryWorkflowInteractionTest extends ApplicationTest {
         clickButtonContaining("Save");
     }
 
-    private void editItemThroughFrontend(Map<String, Object> rowData, String name, String quantity, String unit, String branchName, String departmentName) {
-        interact(() -> new FormView(viewContext).showUpsertForm("Assets", "items", rowData));
-        waitUntil(() -> visibleTextFieldCount() >= 2, Duration.ofSeconds(10), "Item edit form did not render");
-        waitUntil(() -> visibleComboCount() >= 3, Duration.ofSeconds(10), "Item edit combos did not render");
-        setTextField(0, name);
-        setTextField(1, quantity);
-        selectComboValue(0, unit);
-        selectComboValue(1, branchName);
-        waitUntil(() -> comboHasValue(2, departmentName), Duration.ofSeconds(10), "Item edit department combo did not load");
-        selectComboValue(2, departmentName);
-        clickButtonContaining("Save");
-    }
-
-    private void createBagThroughFrontend(String name, String barcode, String branchName, String departmentName) {
-        interact(() -> new FormView(viewContext).showUpsertForm("Bags", "bags", null));
-        waitUntil(() -> visibleTextFieldCount() >= 2, Duration.ofSeconds(10), "Bag form did not render");
-        waitUntil(() -> visibleComboCount() >= 2, Duration.ofSeconds(10), "Bag combos did not render");
-        setTextField(0, name);
-        setTextField(1, barcode);
-        selectComboValue(0, branchName);
-        waitUntil(() -> comboHasValue(1, departmentName), Duration.ofSeconds(10), "Bag department combo did not load");
-        selectComboValue(1, departmentName);
-        clickButtonContaining("Save");
-    }
-
-    private void editBagThroughFrontend(Map<String, Object> rowData, String name, String barcode, String branchName, String departmentName) {
-        interact(() -> new FormView(viewContext).showUpsertForm("Bags", "bags", rowData));
-        waitUntil(() -> visibleTextFieldCount() >= 2, Duration.ofSeconds(10), "Bag edit form did not render");
-        waitUntil(() -> visibleComboCount() >= 2, Duration.ofSeconds(10), "Bag edit combos did not render");
-        setTextField(0, name);
-        setTextField(1, barcode);
-        selectComboValue(0, branchName);
-        waitUntil(() -> comboHasValue(1, departmentName), Duration.ofSeconds(10), "Bag edit department combo did not load");
-        selectComboValue(1, departmentName);
-        clickButtonContaining("Save");
-    }
-
-    private void createDisplacementThroughFrontend(String itemName, String borrower, String reason) {
-        interact(() -> new FormView(viewContext).showUpsertForm("Displacements", "displacements", null));
-        waitUntil(() -> visibleComboCount() >= 1, Duration.ofSeconds(10), "Displacement item combo did not render");
-        waitUntil(() -> comboHasValue(0, itemName), Duration.ofSeconds(10), "Displacement item options did not load");
-        waitUntil(() -> visibleTextFieldCount() >= 1, Duration.ofSeconds(10), "Displacement borrower did not render");
-        waitUntil(() -> visibleTextAreaCount() >= 1, Duration.ofSeconds(10), "Displacement reason did not render");
-        selectComboValue(0, itemName);
-        setTextField(0, borrower);
-        setTextArea(0, reason);
-        clickButtonContaining("Save");
-    }
-
-    private void editDisplacementThroughFrontend(Map<String, Object> rowData, String itemName, String borrower, String reason) {
-        interact(() -> new FormView(viewContext).showUpsertForm("Displacements", "displacements", rowData));
-        waitUntil(() -> visibleComboCount() >= 1, Duration.ofSeconds(10), "Displacement edit combo did not render");
-        waitUntil(() -> comboHasValue(0, itemName), Duration.ofSeconds(10), "Displacement edit item options did not load");
-        waitUntil(() -> visibleTextFieldCount() >= 1, Duration.ofSeconds(10), "Displacement edit borrower did not render");
-        waitUntil(() -> visibleTextAreaCount() >= 1, Duration.ofSeconds(10), "Displacement edit reason did not render");
-        selectComboValue(0, itemName);
-        setTextField(0, borrower);
-        setTextArea(0, reason);
-        clickButtonContaining("Save");
-    }
-
     private void setTextField(int index, String value) {
         waitUntil(() -> visibleTextFieldCount() > index, Duration.ofSeconds(10), "Expected text field index not visible: " + index);
         interact(() -> {
@@ -296,16 +235,16 @@ class FrontendInventoryWorkflowInteractionTest extends ApplicationTest {
         });
     }
 
-    private void selectComboValue(int comboIndex, String text) {
+    private void selectComboValue(int comboIndex, String optionText) {
         waitUntil(() -> visibleComboCount() > comboIndex, Duration.ofSeconds(10), "Expected combo index not visible: " + comboIndex);
         interact(() -> {
             List<ComboBox> combos = lookup(".combo-box").queryAllAs(ComboBox.class).stream().filter(ComboBox::isVisible).toList();
             ComboBox combo = combos.get(comboIndex);
             Optional<?> match = combo.getItems().stream()
-                    .filter(item -> String.valueOf(item).contains(text))
+                    .filter(item -> String.valueOf(item).contains(optionText))
                     .findFirst();
             if (match.isEmpty()) {
-                throw new AssertionError("No combo option matched: " + text);
+                throw new AssertionError("No combo option matched: " + optionText);
             }
             combo.setValue(match.get());
         });
