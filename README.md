@@ -67,6 +67,7 @@ If you use a custom user/password, make sure to update your `backend/.env` file.
 
 - Build all: `mvn -q -DskipTests package`
 - Test backend: `cd backend && mvn test`
+- Test full suite (Java 21 + headless UI): `xvfb-run --auto-servernum mvn clean verify`
 
 ## Quality gates
 

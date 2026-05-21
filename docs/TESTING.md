@@ -14,10 +14,12 @@ The Inventory Manager project follows a multi-tier testing strategy to ensure re
 
 ## Running Tests
 
+Use Java 21 for every module. Frontend UI tests need an available display server; in headless Linux environments, run them through `xvfb-run`.
+
 ### Root (Full Suite)
 Runs every test in both backend and frontend:
 ```bash
-mvn clean verify
+xvfb-run --auto-servernum mvn clean verify
 ```
 
 ### Backend Only
@@ -27,7 +29,7 @@ mvn test -pl backend
 
 ### Frontend Only
 ```bash
-mvn test -pl frontend
+xvfb-run --auto-servernum mvn test -pl frontend
 ```
 
 ## CI/CD Integration

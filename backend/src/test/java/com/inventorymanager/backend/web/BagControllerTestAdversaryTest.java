@@ -24,7 +24,7 @@ import org.mockito.Mockito;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-class BagControllerTestAdversary {
+class BagControllerTestAdversaryTest {
 
     private MockMvc mockMvc;
     private BagRepository bagRepository;
