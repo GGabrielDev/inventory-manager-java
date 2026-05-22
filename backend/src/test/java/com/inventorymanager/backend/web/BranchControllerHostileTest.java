@@ -34,7 +34,12 @@ public class BranchControllerHostileTest {
         parishRepo = mock(ParishRepository.class);
         controller = new BranchController(
             mock(BranchRepository.class), stateRepo, muniRepo, parishRepo,
-            mock(DepartmentRepository.class), mock(CurrentUser.class), mock(AuditService.class)
+            mock(DepartmentRepository.class),
+            mock(com.inventorymanager.backend.repository.ItemRepository.class),
+            mock(com.inventorymanager.backend.repository.UserRepository.class),
+            mock(com.inventorymanager.backend.repository.BagRepository.class),
+            mock(com.inventorymanager.backend.repository.ItemRequestRepository.class),
+            mock(CurrentUser.class), mock(AuditService.class)
         );
     }
 

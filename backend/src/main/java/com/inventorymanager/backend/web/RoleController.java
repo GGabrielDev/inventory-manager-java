@@ -97,6 +97,7 @@ public class RoleController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_role')")
     public void delete(@PathVariable Long id) {

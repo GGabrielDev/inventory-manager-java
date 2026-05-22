@@ -100,6 +100,7 @@ public class ItemController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_item')")
     public void delete(@PathVariable Long id) {

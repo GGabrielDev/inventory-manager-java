@@ -62,6 +62,7 @@ public class PermissionController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_permission')")
     public void delete(@PathVariable Long id) {

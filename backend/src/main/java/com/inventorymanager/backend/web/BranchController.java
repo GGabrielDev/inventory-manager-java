@@ -124,6 +124,7 @@ public class BranchController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_branch')")
     @Transactional

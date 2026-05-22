@@ -15,7 +15,7 @@ import org.javers.core.metamodel.annotation.DiffIgnore;
 @Table(name = "branches")
 @SQLDelete(sql = "UPDATE branches SET deleted_at = NOW() WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
-@JsonIgnoreProperties({"createdAt", "updatedAt", "hibernateLazyInitializer", "handler", "departments"})
+@JsonIgnoreProperties({"createdAt", "updatedAt", "deletedAt", "hibernateLazyInitializer", "handler", "departments"})
 public class Branch extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

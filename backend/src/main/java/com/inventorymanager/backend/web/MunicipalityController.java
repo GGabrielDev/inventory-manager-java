@@ -92,6 +92,7 @@ public class MunicipalityController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_municipality')")
     @Transactional

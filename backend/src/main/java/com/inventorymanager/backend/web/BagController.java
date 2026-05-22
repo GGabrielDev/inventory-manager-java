@@ -152,6 +152,7 @@ public class BagController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_bag')")
     public void delete(@PathVariable Long id) {

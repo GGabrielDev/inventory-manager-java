@@ -87,6 +87,7 @@ public class DepartmentController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_department')")
     @Transactional

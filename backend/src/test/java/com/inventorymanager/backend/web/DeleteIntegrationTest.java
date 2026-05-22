@@ -165,6 +165,14 @@ class DeleteIntegrationTest {
         em.clear();
     }
 
+    private void assertSoftDeleted(String table, Long id) {
+        Object deletedAt = em.createNativeQuery(
+                "SELECT deleted_at FROM " + table + " WHERE id = ?1")
+                .setParameter(1, id)
+                .getSingleResult();
+        assertNotNull(deletedAt, "deleted_at must be set in table '" + table + "' for id=" + id);
+    }
+
     // ────────────────────────────────────────────────────────────────────────────
     // State tests
     // ────────────────────────────────────────────────────────────────────────────
@@ -178,10 +186,7 @@ class DeleteIntegrationTest {
         mockMvc.perform(delete("/api/states/" + state.getId()))
                 .andExpect(status().isNoContent());
 
-        em.clear();
-        State fromDb = em.find(State.class, state.getId());
-        assertNotNull(fromDb, "Row must still exist in DB (paranoid)");
-        assertNotNull(fromDb.getDeletedAt(), "deleted_at must be set");
+        assertSoftDeleted("states", state.getId());
     }
 
     @Test
@@ -199,13 +204,16 @@ class DeleteIntegrationTest {
     @Test
     @WithMockUser(authorities = "delete_state")
     void deleteState_withBranch_returns409() throws Exception {
-        State state = savedState("StateWithBranch");
-        Municipality muni = savedMunicipality("Muni", state);
+        // Use a separate state/muni/parish for the branch's geographic refs so that
+        // the target state has NO municipalities (only a direct branch reference).
+        State stateTarget = savedState("StateWithBranch");
+        State stateHelper = savedState("HelperState");
+        Municipality muni = savedMunicipality("Muni", stateHelper);
         Parish parish = savedParish("Parish", muni);
-        savedBranch("Branch", state, muni, parish);
+        savedBranch("Branch", stateTarget, muni, parish);
         flush();
 
-        mockMvc.perform(delete("/api/states/" + state.getId()))
+        mockMvc.perform(delete("/api/states/" + stateTarget.getId()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message", containsString("branches")));
     }
@@ -224,9 +232,7 @@ class DeleteIntegrationTest {
         mockMvc.perform(delete("/api/municipalities/" + muni.getId()))
                 .andExpect(status().isNoContent());
 
-        em.clear();
-        Municipality fromDb = em.find(Municipality.class, muni.getId());
-        assertNotNull(fromDb.getDeletedAt());
+        assertSoftDeleted("municipalities", muni.getId());
     }
 
     @Test
@@ -245,13 +251,16 @@ class DeleteIntegrationTest {
     @Test
     @WithMockUser(authorities = "delete_municipality")
     void deleteMunicipality_withBranch_returns409() throws Exception {
+        // Use a separate municipality for the parish so that the target municipality
+        // has NO parishes (only a direct branch reference).
         State state = savedState("State");
-        Municipality muni = savedMunicipality("MuniWithBranch", state);
-        Parish parish = savedParish("Parish", muni);
-        savedBranch("Branch", state, muni, parish);
+        Municipality muniTarget = savedMunicipality("MuniWithBranch", state);
+        Municipality muniHelper = savedMunicipality("HelperMuni", state);
+        Parish parish = savedParish("Parish", muniHelper);
+        savedBranch("Branch", state, muniTarget, parish);
         flush();
 
-        mockMvc.perform(delete("/api/municipalities/" + muni.getId()))
+        mockMvc.perform(delete("/api/municipalities/" + muniTarget.getId()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message", containsString("branches")));
     }
@@ -271,9 +280,7 @@ class DeleteIntegrationTest {
         mockMvc.perform(delete("/api/parishes/" + parish.getId()))
                 .andExpect(status().isNoContent());
 
-        em.clear();
-        Parish fromDb = em.find(Parish.class, parish.getId());
-        assertNotNull(fromDb.getDeletedAt());
+        assertSoftDeleted("parishes", parish.getId());
     }
 
     @Test
@@ -306,9 +313,7 @@ class DeleteIntegrationTest {
         mockMvc.perform(delete("/api/branches/" + branch.getId()))
                 .andExpect(status().isNoContent());
 
-        em.clear();
-        Branch fromDb = em.find(Branch.class, branch.getId());
-        assertNotNull(fromDb.getDeletedAt());
+        assertSoftDeleted("branches", branch.getId());
     }
 
     @Test
@@ -358,9 +363,7 @@ class DeleteIntegrationTest {
         mockMvc.perform(delete("/api/departments/" + dept.getId()))
                 .andExpect(status().isNoContent());
 
-        em.clear();
-        Department fromDb = em.find(Department.class, dept.getId());
-        assertNotNull(fromDb.getDeletedAt());
+        assertSoftDeleted("departments", dept.getId());
     }
 
     @Test
@@ -392,9 +395,7 @@ class DeleteIntegrationTest {
         mockMvc.perform(delete("/api/categories/" + cat.getId()))
                 .andExpect(status().isNoContent());
 
-        em.clear();
-        Category fromDb = em.find(Category.class, cat.getId());
-        assertNotNull(fromDb.getDeletedAt());
+        assertSoftDeleted("categories", cat.getId());
     }
 
     @Test
@@ -435,9 +436,7 @@ class DeleteIntegrationTest {
         mockMvc.perform(delete("/api/items/" + item.getId()))
                 .andExpect(status().isNoContent());
 
-        em.clear();
-        Item fromDb = em.find(Item.class, item.getId());
-        assertNotNull(fromDb.getDeletedAt());
+        assertSoftDeleted("items", item.getId());
     }
 
     @Test
@@ -505,11 +504,7 @@ class DeleteIntegrationTest {
         mockMvc.perform(delete("/api/users/" + userId))
                 .andExpect(status().isNoContent());
 
-        em.clear();
-        // Row must still exist (paranoid)
-        User fromDb = em.find(User.class, userId);
-        assertNotNull(fromDb, "Soft-deleted user row must still exist in DB");
-        assertNotNull(fromDb.getDeletedAt(), "deleted_at must be set");
+        assertSoftDeleted("users", userId);
     }
 
     @Test
@@ -542,9 +537,7 @@ class DeleteIntegrationTest {
         mockMvc.perform(delete("/api/roles/" + role.getId()))
                 .andExpect(status().isNoContent());
 
-        em.clear();
-        Role fromDb = em.find(Role.class, role.getId());
-        assertNotNull(fromDb.getDeletedAt());
+        assertSoftDeleted("roles", role.getId());
     }
 
     @Test
@@ -578,9 +571,7 @@ class DeleteIntegrationTest {
         mockMvc.perform(delete("/api/permissions/" + perm.getId()))
                 .andExpect(status().isNoContent());
 
-        em.clear();
-        Permission fromDb = em.find(Permission.class, perm.getId());
-        assertNotNull(fromDb.getDeletedAt());
+        assertSoftDeleted("permissions", perm.getId());
     }
 
     @Test
@@ -615,9 +606,7 @@ class DeleteIntegrationTest {
         mockMvc.perform(delete("/api/bags/" + bag.getId()))
                 .andExpect(status().isNoContent());
 
-        em.clear();
-        Bag fromDb = em.find(Bag.class, bag.getId());
-        assertNotNull(fromDb.getDeletedAt());
+        assertSoftDeleted("bags", bag.getId());
     }
 
     @Test
@@ -674,9 +663,7 @@ class DeleteIntegrationTest {
         mockMvc.perform(delete("/api/displacements/" + disp.getId()))
                 .andExpect(status().isNoContent());
 
-        em.clear();
-        Displacement fromDb = em.find(Displacement.class, disp.getId());
-        assertNotNull(fromDb.getDeletedAt());
+        assertSoftDeleted("displacements", disp.getId());
     }
 
     @Test
@@ -715,19 +702,21 @@ class DeleteIntegrationTest {
         State state = savedState("State");
         Municipality muni = savedMunicipality("Muni", state);
         Parish parish = savedParish("Parish", muni);
-        Branch branch = savedBranch("BranchWithReq", state, muni, parish);
-        User requestor = savedUser("requestor_user", branch);
+        Branch branchTarget = savedBranch("BranchWithReq", state, muni, parish);
+        // Requestor lives in a different branch so the target branch has no users
+        Branch branchHelper = savedBranch("HelperBranch", state, muni, parish);
+        User requestor = savedUser("requestor_user", branchHelper);
 
         ItemRequest req = new ItemRequest();
         req.setRequestType(ItemRequestType.INBOUND);
         req.setTitle("Test Request");
         req.setJustification("Test justification");
         req.setRequestedBy(requestor);
-        req.setTargetBranch(branch);
+        req.setTargetBranch(branchTarget);
         itemRequestRepository.save(req);
         flush();
 
-        mockMvc.perform(delete("/api/branches/" + branch.getId()))
+        mockMvc.perform(delete("/api/branches/" + branchTarget.getId()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message", containsString("item requests")));
     }

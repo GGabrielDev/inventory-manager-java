@@ -64,6 +64,7 @@ public class StateController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_state')")
     public void delete(@PathVariable Long id) {

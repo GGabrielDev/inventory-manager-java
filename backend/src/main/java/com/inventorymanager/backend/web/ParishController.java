@@ -88,6 +88,7 @@ public class ParishController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_parish')")
     @Transactional
