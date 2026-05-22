@@ -58,11 +58,11 @@ public class UIUtils {
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle(title);
-            alert.setHeaderText(message);
-            
+
             ErrorReport report = parseErrorReport(message, ex);
             String displayMessage = report.displayMessage;
             String backendDetails = report.backendDetails;
+            alert.setHeaderText(displayMessage);
 
             StringBuilder sb = new StringBuilder();
             sb.append("--- ERROR REPORT ---\n").append("Timestamp: ").append(java.time.LocalDateTime.now()).append("\n")

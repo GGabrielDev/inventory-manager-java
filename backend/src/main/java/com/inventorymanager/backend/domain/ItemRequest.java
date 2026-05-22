@@ -1,6 +1,8 @@
 package com.inventorymanager.backend.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import com.inventorymanager.backend.common.BaseEntity;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
@@ -9,7 +11,9 @@ import java.util.List;
 
 @Entity
 @Table(name = "item_requests")
-@JsonIgnoreProperties({"createdAt", "updatedAt"})
+@SQLDelete(sql = "UPDATE item_requests SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
+@JsonIgnoreProperties({"createdAt", "updatedAt", "deletedAt"})
 public class ItemRequest extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

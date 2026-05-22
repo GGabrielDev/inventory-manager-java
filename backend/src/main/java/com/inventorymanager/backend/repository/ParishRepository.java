@@ -14,4 +14,6 @@ public interface ParishRepository extends JpaRepository<Parish, Long>, JpaSpecif
     @Override
     @EntityGraph(attributePaths = {"municipality"})
     Page<Parish> findAll(Specification<Parish> spec, Pageable pageable);
+
+    boolean existsByMunicipality_Id(Long municipalityId);
 }

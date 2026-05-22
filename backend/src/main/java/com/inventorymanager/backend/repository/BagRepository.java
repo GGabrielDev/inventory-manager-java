@@ -16,4 +16,7 @@ public interface BagRepository extends JpaRepository<Bag, Long> {
     @Override
     @EntityGraph(attributePaths = {"branch", "assignedDepartment"})
     Page<Bag> findAll(Pageable pageable);
+
+    boolean existsByBranch_Id(Long branchId);
+    boolean existsByAssignedDepartment_Id(Long departmentId);
 }

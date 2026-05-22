@@ -14,4 +14,6 @@ public interface MunicipalityRepository extends JpaRepository<Municipality, Long
     @Override
     @EntityGraph(attributePaths = {"state"})
     Page<Municipality> findAll(Specification<Municipality> spec, Pageable pageable);
+
+    boolean existsByState_Id(Long stateId);
 }

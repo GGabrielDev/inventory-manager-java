@@ -21,4 +21,7 @@ public interface DisplacementRepository extends JpaRepository<Displacement, Long
     @Override
     @EntityGraph(attributePaths = {"bag", "item"})
     Page<Displacement> findAll(Pageable pageable);
+
+    boolean existsByItem_IdAndStatus(Long itemId, DisplacementStatus status);
+    boolean existsByBag_IdAndStatus(Long bagId, DisplacementStatus status);
 }

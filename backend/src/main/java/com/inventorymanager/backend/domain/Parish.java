@@ -1,6 +1,8 @@
 package com.inventorymanager.backend.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import com.inventorymanager.backend.common.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,7 +16,9 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "parishes")
-@JsonIgnoreProperties({"createdAt", "updatedAt", "hibernateLazyInitializer", "handler"})
+@SQLDelete(sql = "UPDATE parishes SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
+@JsonIgnoreProperties({"createdAt", "updatedAt", "deletedAt", "hibernateLazyInitializer", "handler"})
 public class Parish extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,7 +29,7 @@ public class Parish extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "municipality_id", nullable = false)
-    @JsonIgnoreProperties({"createdAt", "updatedAt"})
+    @JsonIgnoreProperties({"createdAt", "updatedAt", "deletedAt"})
     private Municipality municipality;
 
     public Long getId() {

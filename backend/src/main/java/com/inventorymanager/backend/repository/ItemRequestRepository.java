@@ -12,4 +12,6 @@ public interface ItemRequestRepository extends JpaRepository<ItemRequest, Long> 
     @Override
     @EntityGraph(attributePaths = {"requestedBy", "reviewedBy", "executedBy", "targetBranch", "entries"})
     Page<ItemRequest> findAll(Pageable pageable);
+
+    boolean existsByTargetBranch_Id(Long branchId);
 }

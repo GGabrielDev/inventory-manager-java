@@ -15,4 +15,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Override
     @EntityGraph(attributePaths = {"branch", "roles"})
     Page<User> findAll(Pageable pageable);
+
+    boolean existsByBranch_Id(Long branchId);
+    boolean existsByRoles_Id(Long roleId);
 }

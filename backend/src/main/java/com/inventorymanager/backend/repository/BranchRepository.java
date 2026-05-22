@@ -17,4 +17,8 @@ public interface BranchRepository extends JpaRepository<Branch, Long>, JpaSpecif
     @Override
     @EntityGraph(attributePaths = {"state", "municipality", "parish"})
     Page<Branch> findAll(Specification<Branch> spec, Pageable pageable);
+
+    boolean existsByState_Id(Long stateId);
+    boolean existsByMunicipality_Id(Long municipalityId);
+    boolean existsByParish_Id(Long parishId);
 }

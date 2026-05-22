@@ -5,6 +5,8 @@ import com.inventorymanager.backend.auth.CurrentUser;
 import com.inventorymanager.backend.common.ApiException;
 import com.inventorymanager.backend.common.PageResponse;
 import com.inventorymanager.backend.domain.State;
+import com.inventorymanager.backend.repository.BranchRepository;
+import com.inventorymanager.backend.repository.MunicipalityRepository;
 import com.inventorymanager.backend.repository.StateRepository;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
@@ -16,11 +18,16 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/states")
 public class StateController {
     private final StateRepository repository;
+    private final MunicipalityRepository municipalityRepository;
+    private final BranchRepository branchRepository;
     private final CurrentUser currentUser;
     private final AuditService auditService;
 
-    public StateController(StateRepository repository, CurrentUser currentUser, AuditService auditService) {
+    public StateController(StateRepository repository, MunicipalityRepository municipalityRepository,
+            BranchRepository branchRepository, CurrentUser currentUser, AuditService auditService) {
         this.repository = repository;
+        this.municipalityRepository = municipalityRepository;
+        this.branchRepository = branchRepository;
         this.currentUser = currentUser;
         this.auditService = auditService;
     }
@@ -61,6 +68,12 @@ public class StateController {
     @PreAuthorize("hasAuthority('delete_state')")
     public void delete(@PathVariable Long id) {
         State entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "State not found"));
+        if (municipalityRepository.existsByState_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete State '" + entity.getName() + "' because it has municipalities associated to it.");
+        }
+        if (branchRepository.existsByState_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete State '" + entity.getName() + "' because it has branches associated to it.");
+        }
         repository.delete(entity);
         auditService.commitDelete(currentUser.id(), entity);
     }

@@ -2,6 +2,8 @@ package com.inventorymanager.backend.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import com.inventorymanager.backend.common.BaseEntity;
 import jakarta.persistence.*;
 import java.util.HashSet;
@@ -11,6 +13,8 @@ import org.javers.core.metamodel.annotation.DiffIgnore;
 
 @Entity
 @Table(name = "branches")
+@SQLDelete(sql = "UPDATE branches SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 @JsonIgnoreProperties({"createdAt", "updatedAt", "hibernateLazyInitializer", "handler", "departments"})
 public class Branch extends BaseEntity {
     @Id

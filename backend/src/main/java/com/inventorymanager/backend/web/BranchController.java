@@ -10,7 +10,11 @@ import com.inventorymanager.backend.repository.MunicipalityRepository;
 import com.inventorymanager.backend.repository.ParishRepository;
 import com.inventorymanager.backend.repository.StateRepository;
 import com.inventorymanager.backend.domain.Department;
+import com.inventorymanager.backend.repository.BagRepository;
 import com.inventorymanager.backend.repository.DepartmentRepository;
+import com.inventorymanager.backend.repository.ItemRepository;
+import com.inventorymanager.backend.repository.ItemRequestRepository;
+import com.inventorymanager.backend.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +34,10 @@ public class BranchController {
     private final MunicipalityRepository municipalityRepository;
     private final ParishRepository parishRepository;
     private final DepartmentRepository departmentRepository;
+    private final ItemRepository itemRepository;
+    private final UserRepository userRepository;
+    private final BagRepository bagRepository;
+    private final ItemRequestRepository itemRequestRepository;
     private final CurrentUser currentUser;
     private final AuditService auditService;
 
@@ -39,6 +47,10 @@ public class BranchController {
             MunicipalityRepository municipalityRepository,
             ParishRepository parishRepository,
             DepartmentRepository departmentRepository,
+            ItemRepository itemRepository,
+            UserRepository userRepository,
+            BagRepository bagRepository,
+            ItemRequestRepository itemRequestRepository,
             CurrentUser currentUser,
             AuditService auditService
     ) {
@@ -47,6 +59,10 @@ public class BranchController {
         this.municipalityRepository = municipalityRepository;
         this.parishRepository = parishRepository;
         this.departmentRepository = departmentRepository;
+        this.itemRepository = itemRepository;
+        this.userRepository = userRepository;
+        this.bagRepository = bagRepository;
+        this.itemRequestRepository = itemRequestRepository;
         this.currentUser = currentUser;
         this.auditService = auditService;
     }
@@ -113,6 +129,21 @@ public class BranchController {
     @Transactional
     public void delete(@PathVariable Long id) {
         Branch entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Branch not found"));
+        if (departmentRepository.existsByBranch_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Branch '" + entity.getName() + "' because it has departments associated to it.");
+        }
+        if (itemRepository.existsByBranch_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Branch '" + entity.getName() + "' because it has items associated to it.");
+        }
+        if (userRepository.existsByBranch_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Branch '" + entity.getName() + "' because it has users assigned to it.");
+        }
+        if (bagRepository.existsByBranch_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Branch '" + entity.getName() + "' because it has bags associated to it.");
+        }
+        if (itemRequestRepository.existsByTargetBranch_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Branch '" + entity.getName() + "' because it has item requests targeting it.");
+        }
         repository.delete(entity);
         auditService.commitDelete(currentUser.id(), entity);
     }

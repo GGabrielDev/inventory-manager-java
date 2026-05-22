@@ -91,6 +91,9 @@ public class DisplacementController {
     @PreAuthorize("hasAuthority('delete_displacement')")
     public void delete(@PathVariable Long id) {
         Displacement entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Displacement not found"));
+        if (DisplacementStatus.ACTIVE.equals(entity.getStatus())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete an active displacement. Resolve it first before deleting.");
+        }
         repository.delete(entity);
         auditService.commitDelete(currentUser.id(), entity);
     }

@@ -15,4 +15,6 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
     @Override
     @EntityGraph(attributePaths = {"permissions"})
     Page<Role> findAll(Pageable pageable);
+
+    boolean existsByPermissions_Id(Long permissionId);
 }

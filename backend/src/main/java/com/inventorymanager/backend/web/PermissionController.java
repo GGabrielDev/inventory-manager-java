@@ -6,6 +6,7 @@ import com.inventorymanager.backend.common.ApiException;
 import com.inventorymanager.backend.common.PageResponse;
 import com.inventorymanager.backend.domain.Permission;
 import com.inventorymanager.backend.repository.PermissionRepository;
+import com.inventorymanager.backend.repository.RoleRepository;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -16,11 +17,13 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/permissions")
 public class PermissionController {
     private final PermissionRepository repository;
+    private final RoleRepository roleRepository;
     private final CurrentUser currentUser;
     private final AuditService auditService;
 
-    public PermissionController(PermissionRepository repository, CurrentUser currentUser, AuditService auditService) {
+    public PermissionController(PermissionRepository repository, RoleRepository roleRepository, CurrentUser currentUser, AuditService auditService) {
         this.repository = repository;
+        this.roleRepository = roleRepository;
         this.currentUser = currentUser;
         this.auditService = auditService;
     }
@@ -63,6 +66,9 @@ public class PermissionController {
     @PreAuthorize("hasAuthority('delete_permission')")
     public void delete(@PathVariable Long id) {
         Permission entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Permission not found"));
+        if (roleRepository.existsByPermissions_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Permission '" + entity.getName() + "' because it is assigned to one or more roles.");
+        }
         repository.delete(entity);
         auditService.commitDelete(currentUser.id(), entity);
     }
