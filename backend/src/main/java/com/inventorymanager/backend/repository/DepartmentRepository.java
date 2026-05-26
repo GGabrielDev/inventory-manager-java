@@ -16,4 +16,6 @@ public interface DepartmentRepository extends JpaRepository<Department, Long>, J
     Page<Department> findAll(Specification<Department> spec, Pageable pageable);
 
     java.util.Optional<Department> findByNameAndBranch_Id(String name, Long branchId);
+
+    boolean existsByBranch_Id(Long branchId);
 }

@@ -6,6 +6,7 @@ import com.inventorymanager.backend.common.ApiException;
 import com.inventorymanager.backend.common.PageResponse;
 import com.inventorymanager.backend.domain.Bag;
 import com.inventorymanager.backend.domain.BagItem;
+import com.inventorymanager.backend.domain.DisplacementStatus;
 import com.inventorymanager.backend.repository.BagRepository;
 import com.inventorymanager.backend.repository.BranchRepository;
 import com.inventorymanager.backend.repository.DepartmentRepository;
@@ -151,10 +152,14 @@ public class BagController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_bag')")
     public void delete(@PathVariable Long id) {
         Bag entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bag not found"));
+        if (displacementRepository.existsByBag_IdAndStatus(id, DisplacementStatus.ACTIVE)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Bag '" + entity.getName() + "' because it has active displacements.");
+        }
         repository.delete(entity);
         auditService.commitDelete(currentUser.id(), entity);
     }

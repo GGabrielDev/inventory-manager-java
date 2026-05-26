@@ -120,6 +120,7 @@ public class UserController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_user')")
     public void delete(@PathVariable Long id) {

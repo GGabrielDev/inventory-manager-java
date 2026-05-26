@@ -8,6 +8,9 @@ import com.inventorymanager.backend.domain.Item;
 import com.inventorymanager.backend.repository.BranchRepository;
 import com.inventorymanager.backend.repository.CategoryRepository;
 import com.inventorymanager.backend.repository.DepartmentRepository;
+import com.inventorymanager.backend.domain.DisplacementStatus;
+import com.inventorymanager.backend.repository.BagItemRepository;
+import com.inventorymanager.backend.repository.DisplacementRepository;
 import com.inventorymanager.backend.repository.ItemRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,6 +29,8 @@ public class ItemController {
     private final CategoryRepository categoryRepository;
     private final DepartmentRepository departmentRepository;
     private final BranchRepository branchRepository;
+    private final BagItemRepository bagItemRepository;
+    private final DisplacementRepository displacementRepository;
     private final CurrentUser currentUser;
     private final AuditService auditService;
 
@@ -34,6 +39,8 @@ public class ItemController {
             CategoryRepository categoryRepository,
             DepartmentRepository departmentRepository,
             BranchRepository branchRepository,
+            BagItemRepository bagItemRepository,
+            DisplacementRepository displacementRepository,
             CurrentUser currentUser,
             AuditService auditService
     ) {
@@ -41,6 +48,8 @@ public class ItemController {
         this.categoryRepository = categoryRepository;
         this.departmentRepository = departmentRepository;
         this.branchRepository = branchRepository;
+        this.bagItemRepository = bagItemRepository;
+        this.displacementRepository = displacementRepository;
         this.currentUser = currentUser;
         this.auditService = auditService;
     }
@@ -91,10 +100,17 @@ public class ItemController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_item')")
     public void delete(@PathVariable Long id) {
         Item entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item not found"));
+        if (bagItemRepository.existsByItem_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Item '" + entity.getName() + "' because it is referenced in one or more bags.");
+        }
+        if (displacementRepository.existsByItem_IdAndStatus(id, DisplacementStatus.ACTIVE)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Item '" + entity.getName() + "' because it has active displacements.");
+        }
         repository.delete(entity);
         auditService.commitDelete(currentUser.id(), entity);
     }

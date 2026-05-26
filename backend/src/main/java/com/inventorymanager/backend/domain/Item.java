@@ -1,12 +1,16 @@
 package com.inventorymanager.backend.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import com.inventorymanager.backend.common.BaseEntity;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "items")
-@JsonIgnoreProperties({"createdAt", "updatedAt"})
+@SQLDelete(sql = "UPDATE items SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
+@JsonIgnoreProperties({"createdAt", "updatedAt", "deletedAt"})
 public class Item extends BaseEntity {
     public enum UnitType {
         UND,
@@ -37,7 +41,7 @@ public class Item extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
-    @JsonIgnoreProperties({"createdAt", "updatedAt"})
+    @JsonIgnoreProperties({"createdAt", "updatedAt", "deletedAt"})
     private Category category;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

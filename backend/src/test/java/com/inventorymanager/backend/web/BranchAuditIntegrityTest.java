@@ -57,6 +57,10 @@ class BranchAuditIntegrityTest {
                 municipalityRepository,
                 parishRepository,
                 departmentRepository,
+                Mockito.mock(com.inventorymanager.backend.repository.ItemRepository.class),
+                Mockito.mock(com.inventorymanager.backend.repository.UserRepository.class),
+                Mockito.mock(com.inventorymanager.backend.repository.BagRepository.class),
+                Mockito.mock(com.inventorymanager.backend.repository.ItemRequestRepository.class),
                 currentUser,
                 auditService
         );

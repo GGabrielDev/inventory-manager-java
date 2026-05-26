@@ -28,7 +28,7 @@ public class RoleControllerHostileTest {
         permissionRepository = mock(PermissionRepository.class);
         currentUser = mock(CurrentUser.class);
         auditService = mock(AuditService.class);
-        controller = new RoleController(repository, permissionRepository, currentUser, auditService);
+        controller = new RoleController(repository, permissionRepository, mock(com.inventorymanager.backend.repository.UserRepository.class), currentUser, auditService);
     }
 
     @Test

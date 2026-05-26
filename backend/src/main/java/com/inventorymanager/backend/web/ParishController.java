@@ -6,6 +6,7 @@ import com.inventorymanager.backend.common.ApiException;
 import com.inventorymanager.backend.common.PageResponse;
 import com.inventorymanager.backend.domain.Municipality;
 import com.inventorymanager.backend.domain.Parish;
+import com.inventorymanager.backend.repository.BranchRepository;
 import com.inventorymanager.backend.repository.MunicipalityRepository;
 import com.inventorymanager.backend.repository.ParishRepository;
 import jakarta.validation.Valid;
@@ -20,17 +21,20 @@ import org.springframework.web.bind.annotation.*;
 public class ParishController {
     private final ParishRepository repository;
     private final MunicipalityRepository municipalityRepository;
+    private final BranchRepository branchRepository;
     private final CurrentUser currentUser;
     private final AuditService auditService;
 
     public ParishController(
             ParishRepository repository,
             MunicipalityRepository municipalityRepository,
+            BranchRepository branchRepository,
             CurrentUser currentUser,
             AuditService auditService
     ) {
         this.repository = repository;
         this.municipalityRepository = municipalityRepository;
+        this.branchRepository = branchRepository;
         this.currentUser = currentUser;
         this.auditService = auditService;
     }
@@ -84,12 +88,16 @@ public class ParishController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_parish')")
     @Transactional
     public void delete(@PathVariable Long id) {
         Parish entity = repository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Parish not found"));
+        if (branchRepository.existsByParish_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Parish '" + entity.getName() + "' because it has branches associated to it.");
+        }
         repository.delete(entity);
         auditService.commitDelete(currentUser.id(), entity);
     }

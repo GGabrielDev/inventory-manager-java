@@ -8,6 +8,7 @@ import com.inventorymanager.backend.domain.Permission;
 import com.inventorymanager.backend.domain.Role;
 import com.inventorymanager.backend.repository.PermissionRepository;
 import com.inventorymanager.backend.repository.RoleRepository;
+import com.inventorymanager.backend.repository.UserRepository;
 import jakarta.validation.Valid;
 import java.util.HashSet;
 import java.util.Set;
@@ -22,17 +23,20 @@ import org.springframework.web.bind.annotation.*;
 public class RoleController {
     private final RoleRepository repository;
     private final PermissionRepository permissionRepository;
+    private final UserRepository userRepository;
     private final CurrentUser currentUser;
     private final AuditService auditService;
 
     public RoleController(
             RoleRepository repository,
             PermissionRepository permissionRepository,
+            UserRepository userRepository,
             CurrentUser currentUser,
             AuditService auditService
     ) {
         this.repository = repository;
         this.permissionRepository = permissionRepository;
+        this.userRepository = userRepository;
         this.currentUser = currentUser;
         this.auditService = auditService;
     }
@@ -93,10 +97,14 @@ public class RoleController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_role')")
     public void delete(@PathVariable Long id) {
         Role role = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Role not found"));
+        if (userRepository.existsByRoles_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Role '" + role.getName() + "' because it is assigned to one or more users.");
+        }
         repository.delete(role);
         auditService.commitDelete(currentUser.id(), role);
     }

@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface BagItemRepository extends JpaRepository<BagItem, Long> {
+    boolean existsByItem_Id(Long itemId);
 }

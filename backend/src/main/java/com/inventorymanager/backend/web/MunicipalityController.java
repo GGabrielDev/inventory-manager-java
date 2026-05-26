@@ -6,7 +6,9 @@ import com.inventorymanager.backend.common.ApiException;
 import com.inventorymanager.backend.common.PageResponse;
 import com.inventorymanager.backend.domain.Municipality;
 import com.inventorymanager.backend.domain.State;
+import com.inventorymanager.backend.repository.BranchRepository;
 import com.inventorymanager.backend.repository.MunicipalityRepository;
+import com.inventorymanager.backend.repository.ParishRepository;
 import com.inventorymanager.backend.repository.StateRepository;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
@@ -20,17 +22,23 @@ import org.springframework.web.bind.annotation.*;
 public class MunicipalityController {
     private final MunicipalityRepository repository;
     private final StateRepository stateRepository;
+    private final ParishRepository parishRepository;
+    private final BranchRepository branchRepository;
     private final CurrentUser currentUser;
     private final AuditService auditService;
 
     public MunicipalityController(
             MunicipalityRepository repository,
             StateRepository stateRepository,
+            ParishRepository parishRepository,
+            BranchRepository branchRepository,
             CurrentUser currentUser,
             AuditService auditService
     ) {
         this.repository = repository;
         this.stateRepository = stateRepository;
+        this.parishRepository = parishRepository;
+        this.branchRepository = branchRepository;
         this.currentUser = currentUser;
         this.auditService = auditService;
     }
@@ -84,12 +92,19 @@ public class MunicipalityController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_municipality')")
     @Transactional
     public void delete(@PathVariable Long id) {
         Municipality entity = repository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Municipality not found"));
+        if (parishRepository.existsByMunicipality_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Municipality '" + entity.getName() + "' because it has parishes associated to it.");
+        }
+        if (branchRepository.existsByMunicipality_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Municipality '" + entity.getName() + "' because it has branches associated to it.");
+        }
         repository.delete(entity);
         auditService.commitDelete(currentUser.id(), entity);
     }

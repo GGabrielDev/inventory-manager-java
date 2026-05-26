@@ -14,4 +14,8 @@ public interface ItemRepository extends JpaRepository<Item, Long>, JpaSpecificat
     @Override
     @EntityGraph(attributePaths = {"category", "branch", "department"})
     Page<Item> findAll(Specification<Item> spec, Pageable pageable);
+
+    boolean existsByBranch_Id(Long branchId);
+    boolean existsByDepartment_Id(Long departmentId);
+    boolean existsByCategory_Id(Long categoryId);
 }

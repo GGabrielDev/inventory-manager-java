@@ -6,6 +6,7 @@ import com.inventorymanager.backend.common.ApiException;
 import com.inventorymanager.backend.common.PageResponse;
 import com.inventorymanager.backend.domain.Category;
 import com.inventorymanager.backend.repository.CategoryRepository;
+import com.inventorymanager.backend.repository.ItemRepository;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -16,11 +17,13 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/categories")
 public class CategoryController {
     private final CategoryRepository repository;
+    private final ItemRepository itemRepository;
     private final CurrentUser currentUser;
     private final AuditService auditService;
 
-    public CategoryController(CategoryRepository repository, CurrentUser currentUser, AuditService auditService) {
+    public CategoryController(CategoryRepository repository, ItemRepository itemRepository, CurrentUser currentUser, AuditService auditService) {
         this.repository = repository;
+        this.itemRepository = itemRepository;
         this.currentUser = currentUser;
         this.auditService = auditService;
     }
@@ -57,10 +60,14 @@ public class CategoryController {
         return saved;
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_category')")
     public void delete(@PathVariable Long id) {
         Category entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Category not found"));
+        if (itemRepository.existsByCategory_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Cannot delete Category '" + entity.getName() + "' because it has items associated to it.");
+        }
         repository.delete(entity);
         auditService.commitDelete(currentUser.id(), entity);
     }

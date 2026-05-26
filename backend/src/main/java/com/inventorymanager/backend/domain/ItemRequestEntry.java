@@ -1,12 +1,16 @@
 package com.inventorymanager.backend.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import com.inventorymanager.backend.common.BaseEntity;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "item_request_entries")
-@JsonIgnoreProperties({"createdAt", "updatedAt"})
+@SQLDelete(sql = "UPDATE item_request_entries SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
+@JsonIgnoreProperties({"createdAt", "updatedAt", "deletedAt"})
 public class ItemRequestEntry extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,7 +22,7 @@ public class ItemRequestEntry extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "item_id")
-    @JsonIgnoreProperties({"createdAt", "updatedAt"})
+    @JsonIgnoreProperties({"createdAt", "updatedAt", "deletedAt"})
     private Item item;
 
     @Column(name = "requested_item_name")
@@ -33,17 +37,17 @@ public class ItemRequestEntry extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "requested_category_id")
-    @JsonIgnoreProperties({"createdAt", "updatedAt"})
+    @JsonIgnoreProperties({"createdAt", "updatedAt", "deletedAt"})
     private Category requestedCategory;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "source_department_id")
-    @JsonIgnoreProperties({"createdAt", "updatedAt"})
+    @JsonIgnoreProperties({"createdAt", "updatedAt", "deletedAt"})
     private Department sourceDepartment;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "target_department_id")
-    @JsonIgnoreProperties({"createdAt", "updatedAt"})
+    @JsonIgnoreProperties({"createdAt", "updatedAt", "deletedAt"})
     private Department targetDepartment;
 
     @Column(columnDefinition = "TEXT")
