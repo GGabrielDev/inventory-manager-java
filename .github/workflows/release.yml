@@ -50,12 +50,19 @@ jobs:
           # Use the tag name from the main package release
           TAG_NAME="${{ needs.release-please.outputs.tag_name }}"
           
-          # Find and upload backend jar
-          BACKEND_JAR=$(find backend/target -maxdepth 1 -name "backend-*.jar" | head -n 1)
-          cp $BACKEND_JAR inventory-manager-backend.jar
+          # Find and upload the executable Spring Boot backend jar
+          shopt -s nullglob
+          BACKEND_JARS=(backend/target/backend-*-exec.jar)
+          if [ "${#BACKEND_JARS[@]}" -ne 1 ]; then
+            echo "Expected exactly one executable backend jar, found ${#BACKEND_JARS[@]}"
+            printf 'Matches:\n'
+            printf ' - %s\n' "${BACKEND_JARS[@]}"
+            exit 1
+          fi
+          cp "${BACKEND_JARS[0]}" inventory-manager-backend.jar
           
           # Find and upload frontend jar (excluding original-*)
           FRONTEND_JAR=$(find frontend/target -maxdepth 1 -name "frontend-*.jar" ! -name "original-*" | head -n 1)
-          cp $FRONTEND_JAR inventory-manager-frontend.jar
+          cp "$FRONTEND_JAR" inventory-manager-frontend.jar
           
           gh release upload "$TAG_NAME" inventory-manager-backend.jar inventory-manager-frontend.jar --clobber
