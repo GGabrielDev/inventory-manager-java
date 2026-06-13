@@ -29,7 +29,7 @@ async function verifyRbacBoundary(controllerPath: string) {
   const fullPath = path.resolve(process.cwd(), controllerPath);
   try {
     const content = await fs.readFile(fullPath, "utf-8");
-    const methods = content.match(/public\s+[\w<>]+\s+\w+\s*\(/g) || [];
+    const methods = content.match(/\bpublic\s+(?!class\b|interface\b|enum\b|record\b)(?:[\w<>,.?\[\]\s]+?)\s+(\w+)\s*\(/g) || [];
     const preAuths = content.match(/@PreAuthorize\(/g) || [];
 
     if (preAuths.length < methods.length) {
@@ -57,14 +57,16 @@ async function analyzeTestGaps(moduleName: string) {
     let totalFailures = 0;
     for (const file of xmlFiles) {
       const content = await fs.readFile(path.join(reportDir, file), "utf-8");
-      if (content.includes('failures="') && !content.includes('failures="0"')) {
+      const hasFailures = content.includes('failures="') && !content.includes('failures="0"');
+      const hasErrors = content.includes('errors="') && !content.includes('errors="0"');
+      if (hasFailures || hasErrors) {
         totalFailures++;
       }
     }
 
     return {
       isViolated: totalFailures > 0,
-      message: totalFailures > 0 ? `Detected failures in ${totalFailures} test report(s).` : "No test gaps detected in reports.",
+      message: totalFailures > 0 ? `Detected failures/errors in ${totalFailures} test report(s).` : "No test gaps detected in reports.",
     };
   } catch (error: any) {
     return { isViolated: true, message: `Error analyzing tests: ${error.message}` };

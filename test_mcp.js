@@ -38,8 +38,10 @@ setTimeout(() => {
   setTimeout(() => {
     server.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) + '\n');
     callTool('verify_rbac_boundary', { controller_path: 'backend/src/main/java/com/inventorymanager/backend/web/TestController.java' });
-    callTool('verify_rbac_boundary', { controller_path: 'backend/src/main/java/com/inventorymanager/backend/audit/AuditController.java' });
+    callTool('verify_rbac_boundary', { controller_path: 'backend/src/main/java/com/inventorymanager/backend/audit/AuditLogController.java' });
     callTool('verify_rbac_boundary', { controller_path: 'backend/src/main/java/com/inventorymanager/backend/web/BranchController.java' });
+    callTool('verify_rbac_boundary', { controller_path: 'backend/src/main/java/com/inventorymanager/backend/auth/AuthController.java' });
+    callTool('verify_rbac_boundary', { controller_path: 'backend/src/main/java/com/inventorymanager/backend/web/BagController.java' });
     callTool('analyze_test_gaps', { module_name: 'backend' });
     callTool('audit_javers_compliance', { entity_path: 'backend/src/main/java/com/inventorymanager/backend/domain/Branch.java' });
     callTool('check_ui_style', { fxml_or_java_path: 'frontend/src/main/java/com/inventorymanager/frontend/ui/views/AuditView.java' });

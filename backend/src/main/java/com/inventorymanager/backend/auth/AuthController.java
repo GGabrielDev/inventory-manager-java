@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -39,6 +40,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
+    @PreAuthorize("permitAll()")
     public Map<String, String> login(@Valid @RequestBody LoginRequest request) {
         try {
             authenticationManager.authenticate(
@@ -52,11 +54,13 @@ public class AuthController {
     }
 
     @GetMapping("/validate")
+    @PreAuthorize("isAuthenticated()")
     public Map<String, Boolean> validate() {
         return Map.of("valid", true);
     }
 
     @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     public Map<String, Object> me(@AuthenticationPrincipal AppUserPrincipal principal) {
         User user = userRepository.findById(principal.id())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
