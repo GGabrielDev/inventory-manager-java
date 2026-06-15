@@ -77,6 +77,19 @@ public class ApiClient {
         sendAuthorized("/" + resource + "/" + id, "DELETE", null);
     }
 
+    /** Sends a POST to a sub-resource path (e.g. displacements/{id}/resolve). */
+    public Map<String, Object> callPost(String path, Map<String, Object> body) throws IOException, InterruptedException {
+        HttpResponse<String> response = sendAuthorized("/" + path, "POST", objectMapper.writeValueAsString(body));
+        return objectMapper.readValue(response.body(), new TypeReference<>() {});
+    }
+
+    /** Lists ALL pages and returns the full paginated response map, not just the data array. */
+    public Map<String, Object> listRaw(String resource) throws IOException, InterruptedException {
+        String path = resource.contains("?") ? resource : resource + "?page=1&pageSize=100";
+        HttpResponse<String> response = sendAuthorized("/" + path, "GET", null);
+        return objectMapper.readValue(response.body(), new TypeReference<>() {});
+    }
+
     private HttpResponse<String> sendAuthorized(String path, String method, String body) throws IOException, InterruptedException {
         if (verbose) {
             System.out.println(">>> API REQUEST: " + method + " " + path);
