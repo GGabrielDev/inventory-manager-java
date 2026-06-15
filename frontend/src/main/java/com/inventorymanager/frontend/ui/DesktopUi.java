@@ -66,7 +66,7 @@ public class DesktopUi {
                 showDashboard(); 
             } catch (Exception ex) {
                 // STABILIZATION: Surface the error instead of silent fallback
-                UIUtils.showErrorPopup(bundle.getString("login.status.fail"), "Failed to load dashboard after login", ex);
+                UIUtils.showSimpleError(bundle.getString("login.status.fail"), bundle.getString("login.status.auth_error"));
                 showLogin();
             }
         }, this::showSettingsPopup, (title, resource) -> {
@@ -367,9 +367,9 @@ public class DesktopUi {
             configManager.setLanguage(langCombo.getValue());
             this.apiClient = new ApiClient(urlField.getText());
             loadBundle();
-            initViewContext(); // STABILIZATION: Update context and all dependent views/runnables
+            initViewContext();
             settingsStage.close();
-            try { showDashboard(); } catch (Exception ex) { UIUtils.showErrorPopup("UI Error", "Could not reload dashboard", ex); }
+            showLogin();
         });
         layout.getChildren().addAll(
             new Label(bundle.getString("settings.url")), urlField,

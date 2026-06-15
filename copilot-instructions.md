@@ -26,7 +26,7 @@
 - Always make atomic, focused commits with descriptive Conventional Commits messages for any changes made by the AI.
 - Prefer small incremental commits per PR (single concern per commit). Avoid large monolithic commits when changes can be split safely.
 - Never bypass local hooks/checks with `--no-verify`.
-- Guard/instruction files treated as locked after validation: `tools/hooks/pre-push`, `copilot-instructions.md`, `docs/AUDITING.md`.
+- Guard/instruction files treated as locked after validation: `tools/hooks/pre-push`, `.github/commands/gemini-invoke.toml`, `.github/commands/gemini-plan-execute.toml`, `copilot-instructions.md`, `docs/AUDITING.md`.
 - Follow the CI/CD pipeline rules: all new work must go into a separate branch, pass tests in `ci.yml`, and be merged via PR to trigger `release.yml` for changelog and artifact generation.
 - Do not push directly into `master` unless for extremely minor changes or emergency hotfixes.
 - Always reference and adhere to the project's style guidelines (e.g., `docs/STYLE-GUIDE.md`) when planning or programming UI components.

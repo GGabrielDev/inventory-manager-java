@@ -54,6 +54,15 @@ public class UIUtils {
         return new ErrorReport(displayMessage, backendDetails);
     }
 
+    public static void showSimpleError(String title, String message) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle(title);
+            alert.setHeaderText(message);
+            alert.showAndWait();
+        });
+    }
+
     public static void showErrorPopup(String title, String message, Exception ex) {
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.ERROR);
