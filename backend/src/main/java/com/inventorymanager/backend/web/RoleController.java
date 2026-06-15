@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -55,6 +56,7 @@ public class RoleController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('create_role')")
+    @Transactional
     public Role create(@Valid @RequestBody CrudRequest.RoleUpsert request) {
         if (request == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Request body is required");
@@ -72,6 +74,7 @@ public class RoleController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('edit_role')")
+    @Transactional
     public Role update(@PathVariable Long id, @Valid @RequestBody CrudRequest.RoleUpsert request) {
         if (request == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Request body is required");
@@ -100,6 +103,7 @@ public class RoleController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_role')")
+    @Transactional
     public void delete(@PathVariable Long id) {
         Role role = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Role not found"));
         if (userRepository.existsByRoles_Id(id)) {

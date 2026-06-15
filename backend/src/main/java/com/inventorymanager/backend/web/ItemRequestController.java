@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -62,6 +63,7 @@ public class ItemRequestController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('create_item_request')")
+    @Transactional
     public ItemRequest create(@Valid @RequestBody CrudRequest.ItemRequestUpsert request) {
         if (request.entries() == null || request.entries().isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Item request must contain at least one entry");
@@ -76,6 +78,7 @@ public class ItemRequestController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('edit_item_request')")
+    @Transactional
     public ItemRequest update(@PathVariable Long id, @Valid @RequestBody CrudRequest.ItemRequestUpsert request) {
         if (request.entries() == null || request.entries().isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Item request must contain at least one entry");
@@ -92,6 +95,7 @@ public class ItemRequestController {
 
     @PostMapping("/{id}/submit")
     @PreAuthorize("hasAuthority('submit_item_request')")
+    @Transactional
     public ItemRequest submit(@PathVariable Long id) {
         ItemRequest saved = workflowService.submitRequest(id);
         auditService.commitUpdate(currentUser.id(), saved);
@@ -100,6 +104,7 @@ public class ItemRequestController {
 
     @PostMapping("/{id}/review")
     @PreAuthorize("hasAuthority('review_item_request')")
+    @Transactional
     public ItemRequest review(@PathVariable Long id, @Valid @RequestBody CrudRequest.ItemRequestReview review) {
         if (review == null || review.decision() == null || review.decision().isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Decision is required");
@@ -121,6 +126,7 @@ public class ItemRequestController {
 
     @PostMapping("/{id}/execute")
     @PreAuthorize("hasAuthority('execute_item_request')")
+    @Transactional
     public ItemRequest execute(@PathVariable Long id) {
         ItemRequest saved = workflowService.executeRequest(id, currentUser.id());
         auditService.commitUpdate(currentUser.id(), saved);

@@ -137,6 +137,7 @@ public class BagController {
     public record BagAuditItem(Long itemId, String itemName, int intendedQuantity, int displacedQuantity, int remainingQuantity, int anomalyCount) {}
 
     @PostMapping
+    @Transactional
     @PreAuthorize("hasAuthority('create_bag')")
     public Bag create(@Valid @RequestBody CrudRequest.BagUpsert request) {
         Bag entity = new Bag();
@@ -147,6 +148,7 @@ public class BagController {
     }
 
     @PutMapping("/{id}")
+    @Transactional
     @PreAuthorize("hasAuthority('edit_bag')")
     public Bag update(@PathVariable Long id, @Valid @RequestBody CrudRequest.BagUpsert request) {
         Bag entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bag not found"));

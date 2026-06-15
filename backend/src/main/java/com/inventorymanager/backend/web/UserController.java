@@ -17,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -59,6 +60,7 @@ public class UserController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('create_user')")
+    @Transactional
     public User create(@Valid @RequestBody CrudRequest.UserUpsert request) {
         if (request == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Request body is required");
@@ -85,6 +87,7 @@ public class UserController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('edit_user')")
+    @Transactional
     public User update(@PathVariable Long id, @Valid @RequestBody CrudRequest.UserUpsert request) {
         if (request == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Request body is required");
@@ -123,6 +126,7 @@ public class UserController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_user')")
+    @Transactional
     public void delete(@PathVariable Long id) {
         User user = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
         repository.delete(user);

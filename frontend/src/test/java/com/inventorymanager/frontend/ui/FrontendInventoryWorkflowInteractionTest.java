@@ -35,7 +35,8 @@ import org.testfx.framework.junit5.ApplicationTest;
                 "spring.datasource.password=",
                 "spring.jpa.hibernate.ddl-auto=create-drop",
                 "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-                "spring.flyway.enabled=false"
+                "spring.flyway.enabled=false",
+                "spring.jpa.open-in-view=true"
         }
 )
 @ActiveProfiles("test")
@@ -126,6 +127,17 @@ class FrontendInventoryWorkflowInteractionTest extends ApplicationTest {
         waitForEntityByField("items", "name", itemName, Duration.ofSeconds(10));
 
         assertTrue(findEntityByField("items", "name", itemName).isPresent());
+
+        // 8. Create a bag via API and barcode lookup
+        String bagBarcode = "WF-BAG-001";
+        apiClient.create("bags", Map.of(
+            "name", "WF Test Bag",
+            "barcode", bagBarcode,
+            "branchId", numericId(createdBranch, "id"),
+            "assignedDepartmentId", numericId(createdDepartment, "id")
+        ));
+        Map<String, Object> barcodeResult = apiClient.get("bags/barcode/" + bagBarcode);
+        assertNotNull(barcodeResult, "Bag barcode lookup should work");
     }
 
     private void loginAsAdmin() {
@@ -212,6 +224,18 @@ class FrontendInventoryWorkflowInteractionTest extends ApplicationTest {
         selectComboValue(1, branchName);
         waitUntil(() -> comboHasValue(2, departmentName), Duration.ofSeconds(10), "Item department combo did not load");
         selectComboValue(2, departmentName);
+        clickButtonContaining("Save");
+    }
+
+    private void createBagThroughFrontend(String name, String barcode, String branchName, String departmentName) {
+        interact(() -> new FormView(viewContext).showUpsertForm("Bags", "bags", null));
+        waitUntil(() -> visibleTextFieldCount() >= 2, Duration.ofSeconds(10), "Bag form did not render (need 2 text fields)");
+        waitUntil(() -> visibleComboCount() >= 2, Duration.ofSeconds(10), "Bag combos did not render (need 2)");
+        setTextField(0, name);
+        setTextField(1, barcode);
+        selectComboValue(0, branchName);
+        waitUntil(() -> comboHasValue(1, departmentName), Duration.ofSeconds(10), "Bag dept combo did not load");
+        selectComboValue(1, departmentName);
         clickButtonContaining("Save");
     }
 
