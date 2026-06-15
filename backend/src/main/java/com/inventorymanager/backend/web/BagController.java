@@ -20,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -54,6 +55,7 @@ public class BagController {
     }
 
     @GetMapping
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('get_bag')")
     @Operation(summary = "List all bags", description = "Retrieves a paginated list of all kits/bags in the system.")
     public PageResponse<Bag> list(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize) {
@@ -61,6 +63,7 @@ public class BagController {
     }
 
     @GetMapping("/{id}")
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('get_bag')")
     @Operation(summary = "Get bag by ID")
     public Bag get(@PathVariable Long id) {
@@ -68,6 +71,7 @@ public class BagController {
     }
 
     @GetMapping("/barcode/{barcode}")
+    @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('get_bag')")
     @Operation(summary = "Find bag by barcode", description = "Used by the Live Audit scanner to quickly identify a kit.")
     public Bag getByBarcode(@Parameter(description = "Unique barcode of the bag") @PathVariable String barcode) {
