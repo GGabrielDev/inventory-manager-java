@@ -367,9 +367,9 @@ public class DesktopUi {
             configManager.setLanguage(langCombo.getValue());
             this.apiClient = new ApiClient(urlField.getText());
             loadBundle();
-            initViewContext(); // STABILIZATION: Update context and all dependent views/runnables
+            initViewContext();
             settingsStage.close();
-            try { showDashboard(); } catch (Exception ex) { UIUtils.showErrorPopup("UI Error", "Could not reload dashboard", ex); }
+            showLogin();
         });
         layout.getChildren().addAll(
             new Label(bundle.getString("settings.url")), urlField,
