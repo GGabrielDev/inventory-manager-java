@@ -72,15 +72,11 @@ If you use a custom user/password, make sure to update your `backend/.env` file.
 ## Quality gates
 
 - Remote required checks are the source of truth for merge enforcement.
-- Optional local passive post-commit checks write to `.gemini/local-guards/latest-summary.md`.
 - Local pre-push hook runs:
   - `mvn -q -DskipTests clean compile`
   - `mvn -q -pl backend test`
-  - recursive headless Copilot adversary/auditor checks against `master` (auto-fix + retry, bounded attempts)
-- Pre-push Copilot summary: `.copilot/recursive-guards/latest-summary.md`.
 - Merge protection should require these GitHub checks:
   - `CI / Build and Unit Tests`
-- `Gemini Hard Guard` is optional/manual (`workflow_dispatch`) when extra remote audit is needed.
 
 ## Documentation
 
