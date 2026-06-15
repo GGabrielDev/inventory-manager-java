@@ -66,7 +66,7 @@ public class DesktopUi {
                 showDashboard(); 
             } catch (Exception ex) {
                 // STABILIZATION: Surface the error instead of silent fallback
-                UIUtils.showErrorPopup(bundle.getString("login.status.fail"), "Failed to load dashboard after login", ex);
+                UIUtils.showSimpleError(bundle.getString("login.status.fail"), bundle.getString("login.status.auth_error"));
                 showLogin();
             }
         }, this::showSettingsPopup, (title, resource) -> {

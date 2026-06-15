@@ -96,7 +96,10 @@ public class LoginView {
                 uiThreadExecutor.accept(() -> {
                     if (loginBtn != null) loginBtn.setDisable(false);
                     showStatus(context.bundle().getString("login.status.auth_error"));
-                    UIUtils.showErrorPopup(context.bundle().getString("login.status.fail"), context.bundle().getString("login.status.auth_error"), exception);
+                    UIUtils.showSimpleError(
+                        context.bundle().getString("login.status.fail"),
+                        context.bundle().getString("login.status.auth_error")
+                    );
                 });
             }
         }).start();
