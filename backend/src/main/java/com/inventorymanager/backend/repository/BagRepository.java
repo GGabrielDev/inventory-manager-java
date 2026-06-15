@@ -14,7 +14,7 @@ public interface BagRepository extends JpaRepository<Bag, Long> {
     Optional<Bag> findByBarcode(String barcode);
 
     @Override
-    @EntityGraph(attributePaths = {"branch", "assignedDepartment"})
+    @EntityGraph(attributePaths = {"branch", "assignedDepartment", "expectedItems", "expectedItems.item"})
     Page<Bag> findAll(Pageable pageable);
 
     boolean existsByBranch_Id(Long branchId);
