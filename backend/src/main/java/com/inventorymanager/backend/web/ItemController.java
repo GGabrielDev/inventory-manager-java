@@ -19,6 +19,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -82,6 +83,7 @@ public class ItemController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('create_item')")
+    @Transactional
     public Item create(@Valid @RequestBody CrudRequest.ItemUpsert request) {
         Item entity = new Item();
         mapRequestToEntity(request, entity);
@@ -92,6 +94,7 @@ public class ItemController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('edit_item')")
+    @Transactional
     public Item update(@PathVariable Long id, @Valid @RequestBody CrudRequest.ItemUpsert request) {
         Item entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item not found"));
         mapRequestToEntity(request, entity);
@@ -103,6 +106,7 @@ public class ItemController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_item')")
+    @Transactional
     public void delete(@PathVariable Long id) {
         Item entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Item not found"));
         if (bagItemRepository.existsByItem_Id(id)) {

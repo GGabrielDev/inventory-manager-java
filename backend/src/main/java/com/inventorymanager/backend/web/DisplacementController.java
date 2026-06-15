@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -57,6 +58,7 @@ public class DisplacementController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('create_displacement')")
+    @Transactional
     @Operation(summary = "Register temporary borrowing", description = "Creates a new displacement record. The item is marked as 'unofficially relocated'.")
     public Displacement create(@Valid @RequestBody CrudRequest.DisplacementUpsert request) {
         Displacement entity = new Displacement();
@@ -68,6 +70,7 @@ public class DisplacementController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('edit_displacement')")
+    @Transactional
     public Displacement update(@PathVariable Long id, @Valid @RequestBody CrudRequest.DisplacementUpsert request) {
         Displacement entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Displacement not found"));
         mapRequestToEntity(request, entity);
@@ -78,6 +81,7 @@ public class DisplacementController {
 
     @PostMapping("/{id}/resolve")
     @PreAuthorize("hasAuthority('edit_displacement')")
+    @Transactional
     public Displacement resolve(@PathVariable Long id) {
         Displacement entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Displacement not found"));
         entity.setStatus(DisplacementStatus.RESOLVED);
@@ -90,6 +94,7 @@ public class DisplacementController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_displacement')")
+    @Transactional
     public void delete(@PathVariable Long id) {
         Displacement entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Displacement not found"));
         if (DisplacementStatus.ACTIVE.equals(entity.getStatus())) {

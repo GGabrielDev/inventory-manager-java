@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -53,6 +54,7 @@ public class PermissionController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('edit_permission')")
+    @Transactional
     public Permission update(@PathVariable Long id, @Valid @RequestBody CrudRequest.PermissionUpsert request) {
         Permission entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Permission not found"));
         entity.setName(request.name());
@@ -65,6 +67,7 @@ public class PermissionController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_permission')")
+    @Transactional
     public void delete(@PathVariable Long id) {
         Permission entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Permission not found"));
         if (roleRepository.existsByPermissions_Id(id)) {

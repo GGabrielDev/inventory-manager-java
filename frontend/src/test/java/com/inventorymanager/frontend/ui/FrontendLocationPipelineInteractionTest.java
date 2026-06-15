@@ -37,7 +37,8 @@ import org.testfx.framework.junit5.ApplicationTest;
                 "spring.datasource.password=",
                 "spring.jpa.hibernate.ddl-auto=create-drop",
                 "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-                "spring.flyway.enabled=false"
+                "spring.flyway.enabled=false",
+                "spring.jpa.open-in-view=true"
         }
 )
 @ActiveProfiles("test")
