@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.13.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.12.0...v1.13.0) (2026-06-16)
+
+
+### Features
+
+* Add feature-level acceptance tests with TestFX + real backend ([#73](https://github.com/GGabrielDev/inventory-manager-java/issues/73)) ([d1259c4](https://github.com/GGabrielDev/inventory-manager-java/commit/d1259c45dc4588bda01bd207628a96e3cfdbf722))
+
+
+### Bug Fixes
+
+* Add @Transactional to BagController read endpoints ([#77](https://github.com/GGabrielDev/inventory-manager-java/issues/77)) ([edd7887](https://github.com/GGabrielDev/inventory-manager-java/commit/edd78872b8eb2f6461a78fc6855a70d264eea9c5))
+* Redirect to login after changing API URL in settings ([#74](https://github.com/GGabrielDev/inventory-manager-java/issues/74)) ([2631fa1](https://github.com/GGabrielDev/inventory-manager-java/commit/2631fa1c6a41ab497c34d9fb4914a3a599dc0be7))
+* Resolve Bags LazyInitializationException by making BagItem.item EAGER ([#78](https://github.com/GGabrielDev/inventory-manager-java/issues/78)) ([52591a6](https://github.com/GGabrielDev/inventory-manager-java/commit/52591a699853da5aa33efa9e2f06e05b195d7f18))
+
 ## [1.12.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.11.1...v1.12.0) (2026-05-26)
 
 
