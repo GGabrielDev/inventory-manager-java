@@ -161,6 +161,7 @@ public class BagController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('delete_bag')")
+    @Transactional
     public void delete(@PathVariable Long id) {
         Bag entity = repository.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bag not found"));
         if (displacementRepository.existsByBag_IdAndStatus(id, DisplacementStatus.ACTIVE)) {

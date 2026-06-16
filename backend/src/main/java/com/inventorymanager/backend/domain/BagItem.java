@@ -20,7 +20,7 @@ public class BagItem extends BaseEntity {
     @JoinColumn(name = "bag_id", nullable = false)
     private Bag bag;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "item_id", nullable = false)
     private Item item;
 

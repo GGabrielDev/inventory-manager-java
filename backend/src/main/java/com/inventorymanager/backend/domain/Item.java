@@ -10,7 +10,7 @@ import jakarta.persistence.*;
 @Table(name = "items")
 @SQLDelete(sql = "UPDATE items SET deleted_at = NOW() WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
-@JsonIgnoreProperties({"createdAt", "updatedAt", "deletedAt"})
+@JsonIgnoreProperties({"createdAt", "updatedAt", "deletedAt", "hibernateLazyInitializer", "handler"})
 public class Item extends BaseEntity {
     public enum UnitType {
         UND,
