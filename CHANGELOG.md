@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.1](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.13.0...v1.13.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* Table columns no longer squeezed — remove CONSTRAINED_RESIZE_POLICY ([#79](https://github.com/GGabrielDev/inventory-manager-java/issues/79)) ([ac7104d](https://github.com/GGabrielDev/inventory-manager-java/commit/ac7104d6577baca6bf5f92dc256065fd6ac4de45))
+
 ## [1.13.0](https://github.com/GGabrielDev/inventory-manager-java/compare/v1.12.0...v1.13.0) (2026-06-16)
 
 
