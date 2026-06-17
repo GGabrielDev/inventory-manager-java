@@ -42,7 +42,8 @@ public class ResourceView {
         header.getChildren().addAll(t, spacer, refreshBtn, addBtn);
 
         table = new TableView<>();
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        table.setStyle("-fx-table-cell-border-color: #e0e0e0;");
         VBox.setVgrow(table, Priority.ALWAYS);
         
         HBox filterBar = new HBox(10);
